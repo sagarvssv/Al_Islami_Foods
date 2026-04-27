@@ -1,0 +1,2 @@
+Set-Content nixpacks.toml "[start]
+cmd = 'python3 approval_server.py'"
