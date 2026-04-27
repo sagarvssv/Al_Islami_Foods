@@ -6,7 +6,15 @@ load_dotenv(override=True)
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from agent.tools.dynamodb_tool import update_invoice_status, get_invoice
+
+try:
+    from agent.tools.dynamodb_tool import update_invoice_status, get_invoice
+    print("[OK] Agent tools imported successfully")
+except Exception as e:
+    print(f"[ERROR] Failed to import agent tools: {e}")
+    # Define fallbacks so server still starts
+    def update_invoice_status(invoice_id, status): pass
+    def get_invoice(invoice_id): return None
 
 pipeline_status = {}
 
