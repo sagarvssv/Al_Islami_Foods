@@ -24,35 +24,29 @@ def get_all_records():
     return table.scan().get('Items', [])
 
 def ensure_ses_verified(email: str) -> bool:
-    """Check if email is verified in SES. If not, send verification."""
     try:
-        ses   = get_aws_session().client('ses')
-        attrs = ses.get_identity_verification_attributes(Identities=[email])
+        ses    = get_aws_session().client('ses')
+        attrs  = ses.get_identity_verification_attributes(Identities=[email])
         status = attrs['VerificationAttributes'].get(email, {}).get('VerificationStatus', '')
         if status == 'Success':
             return True
-        # Not verified — send verification email
         ses.verify_email_identity(EmailAddress=email)
-        print(f"[SES] Verification email sent to {email} — they must click the link first")
+        print(f"[SES] Verification email sent to {email}")
         return False
     except Exception as e:
         print(f"[SES] Could not check/verify {email}: {e}")
         return False
 
 def send_submitter_notification(submitter_email: str, invoice: dict, status: str, invoice_id: str):
-    """Send approve/reject result email to the invoice submitter."""
     if not submitter_email or not submitter_email.strip():
-        print(f"[NOTIFY] No submitter email — skipping notification")
+        print(f"[NOTIFY] No submitter email — skipping")
         return
 
     submitter_email = submitter_email.strip()
     print(f"[NOTIFY] Sending {status} notification to: {submitter_email}")
 
-    # Ensure submitter email is verified in SES sandbox
     if not ensure_ses_verified(submitter_email):
-        print(f"[NOTIFY] {submitter_email} not yet verified in SES.")
-        print(f"[NOTIFY] Verification email sent — submitter must click the link once.")
-        print(f"[NOTIFY] After verification, future notifications will be delivered.")
+        print(f"[NOTIFY] {submitter_email} not yet verified — verification email sent")
         return
 
     try:
@@ -64,8 +58,8 @@ def send_submitter_notification(submitter_email: str, invoice: dict, status: str
         date    = invoice.get('invoice_date', 'N/A')
 
         is_approved = (status == 'APPROVED')
-        color  = '#28a745' if is_approved else '#dc3545'
-        icon   = '✅' if is_approved else '❌'
+        color   = '#28a745' if is_approved else '#dc3545'
+        icon    = '✅' if is_approved else '❌'
         subject = f"{icon} Invoice {status} — {vendor} — {amount} {curr}"
 
         html = f"""<!DOCTYPE html>
@@ -153,9 +147,8 @@ Invoice ID  : {invoice_id}
 Al Islami Foods Petty Cash AI
         """
 
-        from_email = os.getenv('APPROVAL_EMAIL')
         ses.send_email(
-            Source=from_email,
+            Source=os.getenv('APPROVAL_EMAIL'),
             Destination={'ToAddresses': [submitter_email]},
             Message={
                 'Subject': {'Data': subject,  'Charset': 'UTF-8'},
@@ -165,14 +158,13 @@ Al Islami Foods Petty Cash AI
                 }
             }
         )
-        print(f"[NOTIFY] ✓ Notification sent to {submitter_email} — {status}")
+        print(f"[NOTIFY] ✓ Sent to {submitter_email} — {status}")
 
     except Exception as e:
-        print(f"[NOTIFY ERROR] Failed to send to {submitter_email}: {e}")
+        print(f"[NOTIFY ERROR] {submitter_email}: {e}")
 
 
 def parse_multipart(body: bytes, content_type: str):
-    """Parse multipart/form-data. Returns dict with file_data, filename, submitter_email."""
     result = {'file_data': None, 'filename': 'invoice.pdf', 'submitter_email': ''}
     if 'boundary=' not in content_type:
         return result
@@ -194,13 +186,13 @@ def parse_multipart(body: bytes, content_type: str):
             for seg in line.split(';'):
                 seg = seg.strip()
                 if seg.startswith('name='):
-                    field_name = seg.split('=',1)[1].strip().strip('"')
+                    field_name = seg.split('=', 1)[1].strip().strip('"')
                 elif seg.startswith('filename='):
-                    filename = seg.split('=',1)[1].strip().strip('"')
+                    filename = seg.split('=', 1)[1].strip().strip('"')
         if field_name == 'submitter_email':
             result['submitter_email'] = content.decode('utf-8', errors='ignore').strip()
         elif field_name == 'file' and filename:
-            safe = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_')
+            safe  = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_')
             clean = ''.join(c if c in safe else '_' for c in filename.split('\n')[0].strip())
             result['filename']  = clean or 'invoice.pdf'
             result['file_data'] = content
@@ -219,8 +211,24 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
         path   = parsed.path
 
+        # ── Root / Health ──────────────────────────────────────────────────
+        if path == '/' or path == '' or path == '/health':
+            self._json(200, {
+                'status' : 'online',
+                'service': 'Al Islami Foods Petty Cash AI',
+                'version': '1.0',
+                'region' : os.getenv('AWS_DEFAULT_REGION', 'eu-central-1'),
+                'endpoints': [
+                    'POST /upload',
+                    'GET  /records',
+                    'GET  /status/TRACKING_ID',
+                    'GET  /action?invoice_id=X&action=approve|reject',
+                    'GET  /health'
+                ]
+            })
+
         # ── Approve / Reject ───────────────────────────────────────────────
-        if path == '/action':
+        elif path == '/action':
             invoice_id = params.get('invoice_id', [None])[0]
             action     = params.get('action',     [None])[0]
             if not invoice_id or action not in ['approve', 'reject']:
@@ -236,9 +244,8 @@ class Handler(BaseHTTPRequestHandler):
             invoice['status'] = new_status
 
             submitter_email = invoice.get('submitter_email', '').strip()
-            print(f"[ACTION] {invoice_id} -> {new_status} | submitter_email='{submitter_email}'")
+            print(f"[ACTION] {invoice_id} -> {new_status} | submitter={submitter_email}")
 
-            # Send notification to submitter in background
             if submitter_email:
                 threading.Thread(
                     target=send_submitter_notification,
@@ -246,7 +253,7 @@ class Handler(BaseHTTPRequestHandler):
                     daemon=True
                 ).start()
             else:
-                print(f"[ACTION] No submitter_email on record {invoice_id} — no notification sent")
+                print(f"[ACTION] No submitter_email on {invoice_id}")
 
             return self._html_response(invoice_id, new_status, invoice)
 
@@ -284,7 +291,6 @@ class Handler(BaseHTTPRequestHandler):
 
             print(f"[UPLOAD] {filename} ({len(file_data)} bytes) | submitter={submitter_email or 'none'}")
 
-            # Write temp file and upload to S3
             suffix = os.path.splitext(filename)[1] or '.pdf'
             tmp    = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
             tmp.write(file_data)
@@ -296,7 +302,6 @@ class Handler(BaseHTTPRequestHandler):
             os.unlink(tmp.name)
             print(f"[UPLOAD] -> s3://{os.getenv('S3_BUCKET_NAME')}/{s3_key}")
 
-            # Auto-verify submitter email in SES sandbox (background)
             if submitter_email:
                 threading.Thread(
                     target=ensure_ses_verified,
@@ -304,7 +309,6 @@ class Handler(BaseHTTPRequestHandler):
                     daemon=True
                 ).start()
 
-            # Tracking ID
             tracking_id = str(uuid.uuid4())[:8].upper()
             pipeline_status[tracking_id] = {'pipeline_status': 'processing', 'current_step': 1}
 
@@ -348,7 +352,7 @@ class Handler(BaseHTTPRequestHandler):
     def _respond(self, code, msg):
         try:
             self.send_response(code); self._cors()
-            self.send_header('Content-Type','text/plain')
+            self.send_header('Content-Type', 'text/plain')
             self.end_headers(); self.wfile.write(msg.encode())
         except Exception: pass
 
@@ -356,19 +360,19 @@ class Handler(BaseHTTPRequestHandler):
         try:
             payload = json.dumps(data, default=str).encode()
             self.send_response(code); self._cors()
-            self.send_header('Content-Type','application/json')
+            self.send_header('Content-Type',   'application/json')
             self.send_header('Content-Length', str(len(payload)))
             self.end_headers(); self.wfile.write(payload)
         except Exception: pass
 
     def _html_response(self, invoice_id, status, invoice, already_done=False):
-        color  = '#28a745' if status=='APPROVED' else '#dc3545'
-        icon   = '&#10003;' if status=='APPROVED' else '&#10007;'
+        color  = '#28a745' if status == 'APPROVED' else '#dc3545'
+        icon   = '&#10003;' if status == 'APPROVED' else '&#10007;'
         msg    = 'already been' if already_done else 'been'
-        vendor = invoice.get('vendor_name','Unknown')
-        amount = invoice.get('total_amount',0)
-        curr   = invoice.get('currency','AED')
-        sub    = invoice.get('submitter_email','').strip()
+        vendor = invoice.get('vendor_name', 'Unknown')
+        amount = invoice.get('total_amount', 0)
+        curr   = invoice.get('currency', 'AED')
+        sub    = invoice.get('submitter_email', '').strip()
         notif  = (f'<p style="color:#6c757d;font-size:13px;margin-top:12px">'
                   f'Notification sent to: <strong>{sub}</strong></p>') if sub else ''
         html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -399,7 +403,7 @@ h2{{color:#212529;margin:8px 0;font-size:22px}}
         try:
             payload = html.encode('utf-8')
             self.send_response(200); self._cors()
-            self.send_header('Content-Type','text/html; charset=utf-8')
+            self.send_header('Content-Type',   'text/html; charset=utf-8')
             self.send_header('Content-Length', str(len(payload)))
             self.end_headers(); self.wfile.write(payload)
         except Exception: pass
@@ -412,15 +416,17 @@ if __name__ == '__main__':
     server = HTTPServer(('0.0.0.0', port), Handler)
     print(f"\nAl Islami Foods — Approval Server")
     print(f"{'='*45}")
-    print(f"Running on : http://localhost:{port}")
-    print(f"Region     : {os.getenv('AWS_DEFAULT_REGION','eu-central-1')}")
-    print(f"S3 Bucket  : {os.getenv('S3_BUCKET_NAME','not set')}")
-    print(f"DynamoDB   : {os.getenv('DYNAMODB_TABLE','al-islami-petty-cash')}")
+    print(f"Running on : http://0.0.0.0:{port}")
+    print(f"Region     : {os.getenv('AWS_DEFAULT_REGION', 'eu-central-1')}")
+    print(f"S3 Bucket  : {os.getenv('S3_BUCKET_NAME', 'not set')}")
+    print(f"DynamoDB   : {os.getenv('DYNAMODB_TABLE', 'al-islami-petty-cash')}")
     print(f"{'='*45}")
     print(f"\nEndpoints:")
+    print(f"  GET  /                        service info")
+    print(f"  GET  /health                  health check")
+    print(f"  GET  /records                 all DynamoDB records")
     print(f"  POST /upload                  upload invoice + submitter email")
     print(f"  GET  /status/TRACKING_ID      pipeline progress")
-    print(f"  GET  /records                 all DynamoDB records")
     print(f"  GET  /action?invoice_id=X&action=approve|reject")
     print(f"\nFlow:")
     print(f"  Upload -> S3 -> Textract -> Claude -> DynamoDB -> Manager email")
