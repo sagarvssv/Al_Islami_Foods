@@ -1,1 +1,1 @@
-web: python approval_server.py
+web: python3 approval_server.py
