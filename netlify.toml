@@ -1,8 +1,7 @@
 [build]
   publish = "."
   command = ""
+  ignore = "exit 0"
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
+[build.environment]
+  NETLIFY_SKIP_PYTHON_SETUP = "true"
