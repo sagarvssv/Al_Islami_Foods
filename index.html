@@ -206,11 +206,12 @@ tr:hover td{background:#f8fff8}
             <th>Status</th>
             <th>Financial Mgr</th>
             <th>Manager</th>
+            <th>Rejection Reason</th>
             <th>Submitted</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="9"><div class="empty"><div class="empty-icon">⏳</div>Loading...</div></td></tr>
+          <tr><td colspan="10"><div class="empty"><div class="empty-icon">⏳</div>Loading...</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -271,7 +272,7 @@ async function loadRecs(silent=true) {
   } catch {
     setSrv(false);
     document.getElementById('tbody').innerHTML =
-      '<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔌</div>'+
+      '<tr><td colspan="10"><div class="empty"><div class="empty-icon">🔌</div>'+
       '<div>Cannot reach server</div></div></td></tr>';
   }
 }
@@ -316,6 +317,22 @@ function finalBadge(r) {
   return `<span class="badge bp">${fs}</span>`;
 }
 
+function rejectionCell(r) {
+  if (!r.rejection_reason) return '—';
+  const labels = {
+    duplicate      : '🔁 Duplicate',
+    missing_info   : '📋 Missing Info',
+    over_budget    : '💰 Over Budget',
+    not_approved   : '🚫 Not Approved',
+    wrong_category : '🏷️ Wrong Category',
+    policy         : '📜 Policy',
+    other          : '✍️ Other',
+  };
+  const label = labels[r.rejection_reason] || r.rejection_reason;
+  const notes = r.rejection_notes ? '<br><span style="color:#495057">' + r.rejection_notes + '</span>' : '';
+  return '<span style="color:#dc3545;font-weight:600">' + label + '</span>' + notes;
+}
+
 function renderRecs() {
   let rows = allRecs;
   if (activeFilter !== 'ALL') {
@@ -330,7 +347,7 @@ function renderRecs() {
 
   if (!rows.length) {
     document.getElementById('tbody').innerHTML =
-      '<tr><td colspan="9"><div class="empty"><div class="empty-icon">📭</div>'+
+      '<tr><td colspan="10"><div class="empty"><div class="empty-icon">📭</div>'+
       '<div>No invoices found</div></div></td></tr>';
     return;
   }
@@ -349,6 +366,7 @@ function renderRecs() {
       '<td>'+finalBadge(r)+'</td>'+
       '<td>'+approvalBadge(a1)+'</td>'+
       '<td>'+approvalBadge(a2)+'</td>'+
+      '<td style="font-size:11px;color:var(--muted)">'+rejectionCell(r)+'</td>'+
       '<td style="color:var(--muted);font-size:11px">'+cr+'</td>'+
       '</tr>';
   }).join('');

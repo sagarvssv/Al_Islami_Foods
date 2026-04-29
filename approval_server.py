@@ -248,6 +248,126 @@ def send_submitter_notification(submitter_email: str, invoice: dict,
     except Exception as e:
         print(f"[NOTIFY ERROR] {e}")
 
+def send_rejection_notification(submitter_email: str, invoice: dict,
+                               invoice_id: str, reason: str, notes: str):
+    """Send detailed rejection email to the submitter with reason."""
+    if not submitter_email:
+        return
+    submitter_email = submitter_email.strip()
+    if not ensure_ses_verified(submitter_email):
+        return
+    try:
+        ses    = get_aws_session().client('ses')
+        vendor = invoice.get('vendor_name', 'Unknown')
+        amount = invoice.get('total_amount', 0)
+        curr   = invoice.get('currency', 'AED')
+        inv_num = invoice.get('invoice_number', 'N/A')
+        date   = invoice.get('invoice_date', 'N/A')
+
+        reason_labels = {
+            'duplicate'      : 'Duplicate Invoice',
+            'missing_info'   : 'Missing Information',
+            'over_budget'    : 'Over Budget / Exceeds Limit',
+            'not_approved'   : 'Vendor / Purchase Not Pre-Approved',
+            'wrong_category' : 'Wrong Category',
+            'policy'         : 'Violates Company Policy',
+            'other'          : 'Other Reason',
+        }
+        reason_label = reason_labels.get(reason, reason)
+        subject = f"❌ Invoice Rejected — {vendor} — {amount} {curr}"
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0"
+  style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+  <tr>
+    <td style="background:linear-gradient(135deg,#1a472a,#2d6a4f);padding:24px 32px;text-align:center">
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">🌿 Al Islami Foods</h1>
+      <p style="margin:4px 0 0;color:#a8d5b5;font-size:13px">Petty Cash — Invoice Decision</p>
+    </td>
+  </tr>
+  <tr><td style="padding:28px 32px;text-align:center">
+    <div style="font-size:52px;margin-bottom:8px">❌</div>
+    <h2 style="color:#dc3545;font-size:22px;margin:0 0 6px">Your Invoice has been Rejected</h2>
+    <p style="color:#6c757d;font-size:14px;margin:0 0 20px">
+      The finance manager has reviewed and rejected your submission.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#f8f9fa;border-radius:8px;overflow:hidden;margin-bottom:16px;text-align:left">
+      <tr style="background:#e9ecef">
+        <td colspan="2" style="padding:10px 16px;font-weight:700;font-size:11px;
+            color:#495057;text-transform:uppercase;letter-spacing:.5px">Invoice Details</td>
+      </tr>
+      <tr><td style="padding:8px 16px;color:#6c757d;font-size:13px;width:38%">Vendor</td>
+          <td style="padding:8px 16px;font-weight:600;font-size:13px">{vendor}</td></tr>
+      <tr style="background:#fff">
+          <td style="padding:8px 16px;color:#6c757d;font-size:13px">Invoice No</td>
+          <td style="padding:8px 16px;font-weight:600;font-size:13px">{inv_num}</td></tr>
+      <tr><td style="padding:8px 16px;color:#6c757d;font-size:13px">Date</td>
+          <td style="padding:8px 16px;font-weight:600;font-size:13px">{date}</td></tr>
+      <tr style="background:#fff">
+          <td style="padding:8px 16px;color:#6c757d;font-size:13px">Amount</td>
+          <td style="padding:8px 16px;font-weight:700;font-size:14px;color:#dc3545">{amount} {curr}</td></tr>
+    </table>
+    <div style="background:#fff5f5;border:2px solid #dc3545;border-radius:8px;padding:16px 20px;text-align:left;margin-bottom:16px">
+      <p style="margin:0 0 6px;font-weight:700;font-size:13px;color:#dc3545">Rejection Reason:</p>
+      <p style="margin:0 0 10px;font-size:14px;color:#212529;font-weight:600">{reason_label}</p>
+      {'<p style="margin:0;font-size:13px;color:#495057;line-height:1.6"><strong>Additional Notes:</strong><br>' + notes + '</p>' if notes else ''}
+    </div>
+    <p style="font-size:12px;color:#6c757d;margin:0">
+      Please review the above reason and resubmit a corrected invoice if applicable.
+    </p>
+    <p style="font-size:11px;color:#adb5bd;margin-top:14px">
+      Invoice ID: <span style="font-family:monospace">{invoice_id}</span>
+    </p>
+  </td></tr>
+  <tr>
+    <td style="background:#f8f9fa;padding:12px 32px;text-align:center;border-top:1px solid #dee2e6">
+      <p style="margin:0;font-size:11px;color:#adb5bd">
+        Al Islami Foods Petty Cash AI &nbsp;|&nbsp; AgentCore · Textract · Claude
+      </p>
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body></html>"""
+
+        plain = f"""
+Al Islami Foods — Invoice Rejected
+====================================
+Vendor     : {vendor}
+Invoice No : {inv_num}
+Date       : {date}
+Amount     : {amount} {curr}
+ID         : {invoice_id}
+
+Rejection Reason: {reason_label}
+{('Notes: ' + notes) if notes else ''}
+
+Please review and resubmit a corrected invoice if applicable.
+Al Islami Foods Petty Cash AI
+        """
+
+        ses.send_email(
+            Source=MANAGER1_EMAIL,
+            Destination={'ToAddresses': [submitter_email]},
+            Message={
+                'Subject': {'Data': subject, 'Charset': 'UTF-8'},
+                'Body': {
+                    'Html': {'Data': html,  'Charset': 'UTF-8'},
+                    'Text': {'Data': plain, 'Charset': 'UTF-8'}
+                }
+            }
+        )
+        print(f"[REJECT NOTIFY] ✓ Sent to {submitter_email} — reason: {reason}")
+    except Exception as e:
+        print(f"[REJECT NOTIFY ERROR] {e}")
+
+
 def parse_multipart(body: bytes, content_type: str):
     result = {'file_data': None, 'filename': 'invoice.pdf', 'submitter_email': ''}
     if 'boundary=' not in content_type:
@@ -331,16 +451,8 @@ class Handler(BaseHTTPRequestHandler):
             print(f"[ACTION] {invoice_id} Level {level} -> {new_status}")
 
             if action == 'reject':
-                # Any rejection → final REJECTED
-                update_final_status(invoice_id, 'REJECTED')
-                submitter = invoice.get('submitter_email', '')
-                if submitter:
-                    threading.Thread(
-                        target=send_submitter_notification,
-                        args=(submitter, invoice, 'REJECTED', invoice_id),
-                        daemon=True
-                    ).start()
-                return self._html_page(invoice_id, 'REJECTED', invoice, level=level)
+                # Show rejection reason form instead of immediate reject
+                return self._rejection_form(invoice_id, invoice, level)
 
             if action == 'approve' and level == 1:
                 if MANAGER2_EMAIL:
@@ -391,6 +503,62 @@ class Handler(BaseHTTPRequestHandler):
             tid    = path.split('/')[-1]
             status = pipeline_status.get(tid, {'pipeline_status': 'processing', 'current_step': 1})
             self._json(200, status)
+
+        elif path == '/reject-submit':
+            # Handle rejection reason form submission via GET with params
+            invoice_id     = params.get('invoice_id', [None])[0]
+            level          = int(params.get('level', ['1'])[0])
+            reason         = params.get('reason', ['other'])[0]
+            notes          = params.get('notes', [''])[0]
+
+            if not invoice_id:
+                return self._respond(400, 'Missing invoice_id')
+
+            invoice = get_invoice(invoice_id)
+            if not invoice:
+                return self._respond(404, f'Invoice {invoice_id} not found')
+
+            level_field = f'approval_{level}_status'
+            if invoice.get(level_field) in ['APPROVED', 'REJECTED']:
+                return self._html_page(invoice_id, 'REJECTED', invoice,
+                                       already_done=True, level=level)
+
+            # Update approval level and final status
+            update_approval_status(invoice_id, level, 'REJECTED')
+            update_final_status(invoice_id, 'REJECTED')
+
+            # Save rejection reason to DynamoDB
+            try:
+                table = get_aws_session().resource('dynamodb').Table(
+                    os.getenv('DYNAMODB_TABLE', 'al-islami-petty-cash')
+                )
+                from datetime import datetime
+                table.update_item(
+                    Key={'invoice_id': invoice_id},
+                    UpdateExpression='SET rejection_reason = :rr, rejection_notes = :rn, updated_at = :ts',
+                    ExpressionAttributeValues={
+                        ':rr': reason,
+                        ':rn': notes,
+                        ':ts': datetime.utcnow().isoformat()
+                    }
+                )
+                print(f"[REJECT] {invoice_id} reason={reason} notes={notes[:50]}")
+            except Exception as e:
+                print(f"[REJECT] DynamoDB update error: {e}")
+
+            invoice['rejection_reason'] = reason
+            invoice['rejection_notes']  = notes
+
+            # Send rejection email to submitter
+            submitter = invoice.get('submitter_email', '')
+            if submitter:
+                threading.Thread(
+                    target=send_rejection_notification,
+                    args=(submitter, invoice, invoice_id, reason, notes),
+                    daemon=True
+                ).start()
+
+            return self._html_page(invoice_id, 'REJECTED', invoice, level=level)
 
         else:
             self._respond(404, 'Not found')
@@ -478,6 +646,113 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.dumps(data, default=str).encode()
             self.send_response(code); self._cors()
             self.send_header('Content-Type',   'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers(); self.wfile.write(payload)
+        except Exception: pass
+
+    def _rejection_form(self, invoice_id, invoice, level):
+        """Show a rejection reason form to the manager."""
+        vendor  = invoice.get('vendor_name', 'Unknown')
+        amount  = invoice.get('total_amount', 0)
+        curr    = invoice.get('currency', 'AED')
+        inv_num = invoice.get('invoice_number', 'N/A')
+        api_url = APPROVAL_API_URL
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reject Invoice — Al Islami Foods</title>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{font-family:'Segoe UI',Arial,sans-serif;background:#f4f4f4;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}}
+.card{{background:#fff;border-radius:16px;max-width:500px;width:100%;
+  box-shadow:0 4px 24px rgba(0,0,0,.1);overflow:hidden}}
+.header{{background:linear-gradient(135deg,#1a472a,#2d6a4f);padding:20px 28px;text-align:center}}
+.header h1{{color:#fff;font-size:18px;font-weight:700;margin:0}}
+.header p{{color:#a8d5b5;font-size:12px;margin:4px 0 0}}
+.body{{padding:24px 28px}}
+.inv-info{{background:#f8f9fa;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px}}
+.inv-info strong{{color:#1a472a}}
+.inv-row{{display:flex;justify-content:space-between;padding:3px 0;color:#495057}}
+.section-title{{font-size:13px;font-weight:700;color:#212529;margin-bottom:10px}}
+.reason-grid{{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}}
+.reason-btn{{padding:10px 12px;border:2px solid #dee2e6;border-radius:8px;
+  background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:#495057;
+  text-align:center;transition:all .15s}}
+.reason-btn:hover,.reason-btn.selected{{border-color:#dc3545;background:#fff5f5;color:#dc3545}}
+.notes-label{{font-size:13px;font-weight:600;color:#212529;margin-bottom:6px;display:block}}
+textarea{{width:100%;padding:10px 12px;border:1.5px solid #dee2e6;border-radius:8px;
+  font-size:13px;font-family:inherit;resize:vertical;min-height:80px;outline:none}}
+textarea:focus{{border-color:#dc3545}}
+.actions{{display:flex;gap:10px;margin-top:20px}}
+.btn-reject{{flex:1;padding:12px;background:#dc3545;color:#fff;border:none;
+  border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}}
+.btn-reject:hover{{background:#c0392b}}
+.btn-cancel{{padding:12px 20px;background:#f8f9fa;color:#6c757d;border:1px solid #dee2e6;
+  border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;display:flex;align-items:center}}
+.btn-cancel:hover{{background:#e9ecef}}
+.err{{color:#dc3545;font-size:12px;margin-top:6px;display:none}}
+</style></head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>🌿 Al Islami Foods</h1>
+    <p>Petty Cash — Rejection Reason</p>
+  </div>
+  <div class="body">
+    <div class="inv-info">
+      <div class="inv-row"><span>Vendor</span><strong>{vendor}</strong></div>
+      <div class="inv-row"><span>Invoice No</span><strong>{inv_num}</strong></div>
+      <div class="inv-row"><span>Amount</span><strong style="color:#dc3545">{amount} {curr}</strong></div>
+    </div>
+
+    <div class="section-title">Select rejection reason:</div>
+    <div class="reason-grid" id="reason-grid">
+      <div class="reason-btn" onclick="selectReason('duplicate')">🔁 Duplicate Invoice</div>
+      <div class="reason-btn" onclick="selectReason('missing_info')">📋 Missing Information</div>
+      <div class="reason-btn" onclick="selectReason('over_budget')">💰 Over Budget</div>
+      <div class="reason-btn" onclick="selectReason('not_approved')">🚫 Not Pre-Approved</div>
+      <div class="reason-btn" onclick="selectReason('wrong_category')">🏷️ Wrong Category</div>
+      <div class="reason-btn" onclick="selectReason('policy')">📜 Policy Violation</div>
+      <div class="reason-btn" onclick="selectReason('other')" style="grid-column:span 2">✍️ Other Reason</div>
+    </div>
+
+    <label class="notes-label">Additional notes (optional):</label>
+    <textarea id="notes" placeholder="Provide more details about the rejection..."></textarea>
+    <div class="err" id="err-msg">Please select a rejection reason.</div>
+
+    <div class="actions">
+      <a class="btn-cancel" href="{api_url}/action?invoice_id={invoice_id}&action=approve&level={level}"
+         onclick="return confirm('Go back to approve instead?')">← Back</a>
+      <button class="btn-reject" onclick="submitRejection()">❌ Confirm Rejection</button>
+    </div>
+  </div>
+</div>
+<script>
+let selectedReason = '';
+function selectReason(r) {{
+  selectedReason = r;
+  document.querySelectorAll('.reason-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  document.getElementById('err-msg').style.display = 'none';
+}}
+function submitRejection() {{
+  if (!selectedReason) {{
+    document.getElementById('err-msg').style.display = 'block';
+    return;
+  }}
+  const notes   = encodeURIComponent(document.getElementById('notes').value.trim());
+  const reason  = encodeURIComponent(selectedReason);
+  window.location.href = '{api_url}/reject-submit?invoice_id={invoice_id}&level={level}&reason=' + reason + '&notes=' + notes;
+}}
+</script>
+</body></html>"""
+
+        try:
+            payload = html.encode('utf-8')
+            self.send_response(200); self._cors()
+            self.send_header('Content-Type',   'text/html; charset=utf-8')
             self.send_header('Content-Length', str(len(payload)))
             self.end_headers(); self.wfile.write(payload)
         except Exception: pass
