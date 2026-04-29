@@ -12,9 +12,27 @@ try:
     print("[OK] Agent tools imported successfully")
 except Exception as e:
     print(f"[ERROR] Failed to import agent tools: {e}")
-    # Define fallbacks so server still starts
     def update_invoice_status(invoice_id, status): pass
     def get_invoice(invoice_id): return None
+
+try:
+    from agent.agentcore_runtime import run_petty_cash_agent
+    print("[OK] AgentCore runtime imported successfully")
+except Exception as e:
+    print(f"[WARN] AgentCore runtime not available: {e}")
+    try:
+        from agent.agent_core import run_petty_cash_agent
+        print("[OK] Fallback to agent_core")
+    except Exception as e2:
+        print(f"[ERROR] Could not import agent: {e2}")
+        def run_petty_cash_agent(bucket, key, submitter_email=''):
+            return {
+                'status'    : 'error',
+                'errors'    : ['Agent not available'],
+                'invoice'   : {},
+                'dup_reason': '',
+                'invoice_id': ''
+            }
 
 pipeline_status = {}
 
@@ -220,7 +238,6 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
         path   = parsed.path
 
-        # ── Root / Health ──────────────────────────────────────────────────
         if path == '/' or path == '' or path == '/health':
             self._json(200, {
                 'status' : 'online',
@@ -236,7 +253,6 @@ class Handler(BaseHTTPRequestHandler):
                 ]
             })
 
-        # ── Approve / Reject ───────────────────────────────────────────────
         elif path == '/action':
             invoice_id = params.get('invoice_id', [None])[0]
             action     = params.get('action',     [None])[0]
@@ -266,14 +282,12 @@ class Handler(BaseHTTPRequestHandler):
 
             return self._html_response(invoice_id, new_status, invoice)
 
-        # ── Records ────────────────────────────────────────────────────────
         elif path == '/records':
             try:
                 self._json(200, get_all_records())
             except Exception as e:
                 self._respond(500, str(e))
 
-        # ── Status polling ─────────────────────────────────────────────────
         elif path.startswith('/status/'):
             tid    = path.split('/')[-1]
             status = pipeline_status.get(tid, {'pipeline_status': 'processing', 'current_step': 1})
@@ -322,7 +336,6 @@ class Handler(BaseHTTPRequestHandler):
             pipeline_status[tracking_id] = {'pipeline_status': 'processing', 'current_step': 1}
 
             def run_agent(tid, key, sub_email):
-                from agent.agent_core import run_petty_cash_agent
                 try:
                     pipeline_status[tid]['current_step'] = 2
                     result = run_petty_cash_agent(
