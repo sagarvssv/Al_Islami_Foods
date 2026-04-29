@@ -445,14 +445,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._html_page(invoice_id, current, invoice,
                                        already_done=True, level=level)
 
-            new_status = 'APPROVED' if action == 'approve' else 'REJECTED'
+            if action == 'reject':
+                # Show rejection reason form — status updated after form submission
+                return self._rejection_form(invoice_id, invoice, level)
+
+            new_status = 'APPROVED'
             update_approval_status(invoice_id, level, new_status)
             invoice[level_field] = new_status
             print(f"[ACTION] {invoice_id} Level {level} -> {new_status}")
-
-            if action == 'reject':
-                # Show rejection reason form instead of immediate reject
-                return self._rejection_form(invoice_id, invoice, level)
 
             if action == 'approve' and level == 1:
                 if MANAGER2_EMAIL:
