@@ -19,82 +19,79 @@ nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 32px;height
 .dot{width:8px;height:8px;border-radius:50%;background:#95e4b3;display:inline-block}.dot.off{background:#e74c3c}
 .nav-tag{font-size:11px;color:rgba(255,255,255,0.65)}
 .wrap{max-width:1100px;margin:0 auto;padding:24px 18px}
-
-/* Stats */
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-.stat{background:var(--white);border-radius:10px;padding:16px 18px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.07);border-top:3px solid var(--g3);
-  cursor:pointer;transition:transform .15s}
+.stat{background:var(--white);border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.07);
+  border-top:3px solid var(--g3);cursor:pointer;transition:transform .15s}
 .stat:hover{transform:translateY(-2px)}
 .stat.ora{border-top-color:#e67e22}.stat.red{border-top-color:var(--red)}.stat.pur{border-top-color:#8e44ad}
 .s-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
 .s-val{font-size:24px;font-weight:700;color:var(--g1)}
 .stat.ora .s-val{color:#e67e22}.stat.red .s-val{color:var(--red)}.stat.pur .s-val{color:#8e44ad}
-
-/* Card */
 .card{background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:18px;overflow:hidden}
 .ch{padding:13px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .ct{font-size:14px;font-weight:600;color:var(--g1)}.cb{padding:20px 22px}
-
-/* Email row */
 .email-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
-.email-row label{font-size:13px;font-weight:600;color:var(--g1);white-space:nowrap;
-  min-width:140px;padding-top:9px}
+.email-row label{font-size:13px;font-weight:600;color:var(--g1);white-space:nowrap;min-width:140px;padding-top:9px}
 .email-wrap{flex:1}
 .email-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
   font-size:13px;outline:none;transition:border-color .2s}
 .email-input:focus{border-color:var(--g2)}
 .email-input.err{border-color:var(--red);background:#fff5f5}
 .email-hint{font-size:11px;color:var(--muted);margin-top:4px}
-
-/* Drop zone */
-.drop{border:2px dashed var(--g3);border-radius:10px;padding:36px;text-align:center;
-  cursor:pointer;transition:all .2s}
+.drop{border:2px dashed var(--g3);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s}
 .drop:hover,.drop.over{background:var(--g4);border-color:var(--g1)}
 .drop.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
-.drop-icon{font-size:34px;margin-bottom:8px}
+.drop-icon{font-size:32px;margin-bottom:8px}
 .drop-main{font-size:14px;color:var(--muted);margin-bottom:4px}
 .drop-sub{font-size:11px;color:#aaa}
 
-/* Progress box */
-.prog-box{display:none;margin-top:18px;background:#fffbf0;border:1px solid #f0d080;
-  border-radius:10px;padding:20px 24px;text-align:center}
-.prog-box.show{display:block}
-.prog-label{font-size:13px;font-weight:600;color:#7d5a00;margin-bottom:12px}
-.prog-track{height:10px;background:#f0d080;border-radius:5px;overflow:hidden;margin-bottom:8px}
-.prog-fill{height:10px;background:linear-gradient(90deg,#e67e22,#f39c12);
-  border-radius:5px;transition:width .6s ease;width:0%}
-.prog-pct{font-size:22px;font-weight:700;color:#e67e22;margin-bottom:4px}
-.prog-step{font-size:12px;color:#a07020}
+/* Multi-file queue */
+.file-queue{margin-top:14px;display:none}
+.file-queue.show{display:block}
+.queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.queue-title{font-size:13px;font-weight:600;color:var(--g1)}
+.queue-actions{display:flex;gap:8px}
+.btn-sm{padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+  border:1px solid var(--border);background:var(--white);color:var(--muted);transition:all .15s}
+.btn-sm:hover{background:var(--light)}
+.btn-primary{background:var(--g2);color:#fff;border-color:var(--g2)}
+.btn-primary:hover{background:var(--g1)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.file-item{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--light);border-radius:8px;margin-bottom:8px;border:1px solid var(--border)}
+.file-icon{font-size:20px;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-size{font-size:11px;color:var(--muted)}
+.file-status{flex-shrink:0;min-width:120px;text-align:right}
+.status-wait{font-size:12px;color:var(--muted)}
+.status-proc{font-size:12px;color:#e67e22;font-weight:600}
+.status-ok{font-size:12px;color:var(--g1);font-weight:600}
+.status-dup{font-size:12px;color:#e65100;font-weight:600}
+.status-err{font-size:12px;color:var(--red);font-weight:600}
+.file-prog{height:3px;background:var(--border);border-radius:2px;margin-top:5px;display:none}
+.file-prog.show{display:block}
+.file-prog-fill{height:3px;background:#e67e22;border-radius:2px;transition:width .5s}
+.file-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 6px}
+.file-remove:hover{color:var(--red)}
 
-/* Outcome */
-.outcome{display:none;margin-top:18px;border-radius:10px;padding:22px 26px}
-.outcome.show{display:block}
-.outcome.ok{background:#f0fff4;border:1px solid #9bd3aa}
-.outcome.dup{background:#fff8f0;border:2px solid #e67e22}
-.outcome.err{background:#fff5f5;border:1px solid #fbb}
-.out-head{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.outcome.ok  .out-head{color:#155724}
-.outcome.dup .out-head{color:#8a4a00}
-.outcome.err .out-head{color:var(--red)}
-.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:13px;margin-bottom:14px}
-.inv-row{display:flex;gap:8px;padding:3px 0}
-.inv-lbl{color:var(--muted);min-width:110px;flex-shrink:0}
-.inv-val{font-weight:600}
-.dup-warn{background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:12px 16px;margin-bottom:14px}
-.dup-warn-title{font-size:13px;font-weight:700;color:#e65100;margin-bottom:3px}
-.dup-warn-body{font-size:12px;color:#bf360c;line-height:1.5}
-.pill{display:inline-block;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;margin-top:2px}
-.pill-ok{background:#d4edda;color:#155724}
-.pill-dup{background:#fff3cd;color:#856404}
-.notif{background:#e8f4fd;border:1px solid #90caf9;border-radius:8px;
-  padding:10px 14px;margin-top:12px;font-size:12px;color:#1565c0;display:flex;align-items:center;gap:6px}
+/* Summary */
+.summary-box{margin-top:14px;padding:14px 18px;background:var(--g4);
+  border:1px solid var(--g3);border-radius:8px;display:none}
+.summary-box.show{display:block}
+.summary-title{font-size:13px;font-weight:700;color:var(--g1);margin-bottom:8px}
+.summary-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.sum-label{color:var(--muted)}
+.sum-val{font-weight:600}
+.sum-val.ok{color:var(--g1)}
+.sum-val.dup{color:#e65100}
+.sum-val.err{color:var(--red)}
 
 /* Table */
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:var(--g1);color:#fff;padding:10px 12px;text-align:left;
-  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+th{background:var(--g1);color:#fff;padding:10px 12px;text-align:left;font-size:11px;
+  font-weight:600;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
 td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
 tr:hover td{background:#f8fff8}
 .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
@@ -115,7 +112,7 @@ tr:hover td{background:#f8fff8}
   opacity:0;transition:all .3s;z-index:999}
 #toast.show{transform:translateY(0);opacity:1}#toast.err{background:var(--red)}
 @media(max-width:640px){
-  .stats{grid-template-columns:repeat(3,1fr)}.inv-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(3,1fr)}
   .email-row{flex-direction:column}.wrap{padding:14px 10px}
 }
 </style>
@@ -145,8 +142,8 @@ tr:hover td{background:#f8fff8}
   <!-- Upload card -->
   <div class="card">
     <div class="ch">
-      <span class="ct">📤 Upload Invoice</span>
-      <span style="font-size:11px;color:var(--muted)">PDF · JPG · PNG · Max 10MB</span>
+      <span class="ct">📤 Upload Invoices</span>
+      <span style="font-size:11px;color:var(--muted)">PDF · JPG · PNG · Up to 10 files at once</span>
     </div>
     <div class="cb">
 
@@ -156,56 +153,53 @@ tr:hover td{background:#f8fff8}
         <div class="email-wrap">
           <input type="email" id="sub-email" class="email-input"
                  placeholder="yourname@company.com" oninput="onEmail()">
-          <div class="email-hint">You'll receive a notification when the manager approves or rejects.</div>
+          <div class="email-hint">You'll receive a notification when each invoice is approved or rejected.</div>
         </div>
       </div>
 
-      <!-- Drop -->
+      <!-- Drop zone -->
       <div class="drop disabled" id="drop"
            onclick="document.getElementById('fi').click()"
            ondragover="dov(event)" ondragleave="dlv()" ondrop="ddp(event)">
         <div class="drop-icon">📁</div>
-        <div class="drop-main" id="drop-main">Enter your email above, then drop invoice here</div>
-        <div class="drop-sub">Uploads to S3 → Textract OCR → Duplicate check → Instant result</div>
+        <div class="drop-main" id="drop-main">Enter your email above, then drop invoices here</div>
+        <div class="drop-sub">Select multiple files · Each processed independently · Max 10MB per file</div>
       </div>
-      <input type="file" id="fi" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="onSel(event)">
+      <input type="file" id="fi" accept=".pdf,.png,.jpg,.jpeg"
+             multiple style="display:none" onchange="onSel(event)">
 
-      <!-- Progress bar (shown while processing) -->
-      <div class="prog-box" id="prog-box">
-        <div class="prog-label" id="prog-label">Processing...</div>
-        <div class="prog-pct" id="prog-pct">0%</div>
-        <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
-        <div class="prog-step" id="prog-step">Uploading...</div>
-      </div>
-
-      <!-- Final result: Sent for approval -->
-      <div class="outcome ok" id="out-ok">
-        <div class="out-head">✅ Invoice sent for approval</div>
-        <div class="inv-grid" id="ok-grid"></div>
-        <span class="pill pill-ok">Approval email sent to finance manager</span>
-        <div class="notif" id="ok-notif" style="display:none">
-          📬 You'll receive a notification at <strong id="ok-email" style="margin-left:4px"></strong>
+      <!-- File queue -->
+      <div class="file-queue" id="file-queue">
+        <div class="queue-header">
+          <span class="queue-title" id="queue-title">0 files selected</span>
+          <div class="queue-actions">
+            <button class="btn-sm" onclick="clearQueue()">✕ Clear all</button>
+            <button class="btn-sm btn-primary" id="process-btn"
+                    onclick="processAll()">▶ Process All</button>
+          </div>
         </div>
-      </div>
+        <div id="file-list"></div>
 
-      <!-- Final result: Duplicate -->
-      <div class="outcome dup" id="out-dup">
-        <div class="out-head">⚠️ Duplicate invoice detected</div>
-        <div class="dup-warn">
-          <div class="dup-warn-title">This invoice already exists in the system</div>
-          <div class="dup-warn-body" id="dup-reason"></div>
+        <!-- Summary -->
+        <div class="summary-box" id="summary-box">
+          <div class="summary-title">Batch Summary</div>
+          <div class="summary-row">
+            <span class="sum-label">Total files</span>
+            <span class="sum-val" id="sum-total">0</span>
+          </div>
+          <div class="summary-row">
+            <span class="sum-label">Sent for approval</span>
+            <span class="sum-val ok" id="sum-ok">0</span>
+          </div>
+          <div class="summary-row">
+            <span class="sum-label">Duplicates detected</span>
+            <span class="sum-val dup" id="sum-dup">0</span>
+          </div>
+          <div class="summary-row">
+            <span class="sum-label">Errors</span>
+            <span class="sum-val err" id="sum-err">0</span>
+          </div>
         </div>
-        <div class="inv-grid" id="dup-grid"></div>
-        <span class="pill pill-dup">Flagged as duplicate · Finance manager notified</span>
-        <div class="notif" id="dup-notif" style="display:none">
-          📬 You'll receive a notification at <strong id="dup-email" style="margin-left:4px"></strong>
-        </div>
-      </div>
-
-      <!-- Final result: Error -->
-      <div class="outcome err" id="out-err">
-        <div class="out-head">❌ <span id="err-title">Processing failed</span></div>
-        <div style="font-size:13px;color:var(--muted)" id="err-body"></div>
       </div>
 
     </div>
@@ -252,14 +246,9 @@ tr:hover td{background:#f8fff8}
 const API = () => 'https://web-production-40aa02.up.railway.app';
 let allRecs = [], activeFilter = 'ALL';
 
-const STEPS = [
-  'Uploading to S3...',
-  'Extracting text with Textract...',
-  'Structuring data with Claude...',
-  'Validating invoice fields...',
-  'Checking for duplicates...',
-  'Saving record and sending email...',
-];
+// File queue state
+let fileQueue = []; // {file, id, status, trackId}
+let processing = false;
 
 // Clock
 setInterval(() => {
@@ -281,41 +270,228 @@ function setSrv(on) {
   document.getElementById('srv-label').textContent = on ? 'Server online' : 'Server offline';
 }
 
-// Email — enable drop zone when valid
+// Email
 function onEmail() {
   const v = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('sub-email').value.trim());
   document.getElementById('drop').classList.toggle('disabled', !v);
   document.getElementById('drop-main').textContent = v
-    ? 'Drop invoice here or click to browse'
-    : 'Enter your email above, then drop invoice here';
+    ? 'Drop invoices here or click to browse (multiple files supported)'
+    : 'Enter your email above, then drop invoices here';
   document.getElementById('sub-email').classList.toggle('err',
     document.getElementById('sub-email').value.length > 0 && !v);
 }
 
-// Progress helpers
-function showProg(label, pct, step) {
-  const pb = document.getElementById('prog-box');
-  pb.classList.add('show');
-  document.getElementById('prog-label').textContent = label;
-  document.getElementById('prog-pct').textContent   = pct + '%';
-  document.getElementById('prog-fill').style.width  = pct + '%';
-  document.getElementById('prog-step').textContent  = step || '';
+// Drag & drop
+function dov(e){ e.preventDefault(); document.getElementById('drop').classList.add('over'); }
+function dlv(){ document.getElementById('drop').classList.remove('over'); }
+function ddp(e){ e.preventDefault(); dlv(); addFiles(Array.from(e.dataTransfer.files)); }
+function onSel(e){ addFiles(Array.from(e.target.files)); e.target.value=''; }
+
+// Add files to queue
+function addFiles(files) {
+  const email = document.getElementById('sub-email').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    toast('Please enter a valid email first', 'err'); return;
+  }
+
+  const valid = files.filter(f => {
+    if (f.size > 10*1024*1024) { toast(`${f.name} too large (max 10MB)`, 'err'); return false; }
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!['pdf','png','jpg','jpeg'].includes(ext)) {
+      toast(`${f.name} — unsupported format`, 'err'); return false;
+    }
+    return true;
+  });
+
+  valid.forEach(f => {
+    // Avoid duplicates in queue
+    if (!fileQueue.find(q => q.file.name === f.name && q.file.size === f.size)) {
+      fileQueue.push({
+        file    : f,
+        id      : Math.random().toString(36).slice(2,8).toUpperCase(),
+        status  : 'waiting',
+        trackId : null,
+        result  : null
+      });
+    }
+  });
+
+  renderQueue();
 }
 
-function hideProg() {
-  document.getElementById('prog-box').classList.remove('show');
+function renderQueue() {
+  const q = document.getElementById('file-queue');
+  const list = document.getElementById('file-list');
+
+  if (fileQueue.length === 0) {
+    q.classList.remove('show');
+    return;
+  }
+  q.classList.add('show');
+
+  const waiting = fileQueue.filter(f => f.status === 'waiting').length;
+  document.getElementById('queue-title').textContent =
+    `${fileQueue.length} file${fileQueue.length>1?'s':''} — ${waiting} waiting`;
+
+  const btn = document.getElementById('process-btn');
+  btn.disabled = processing || waiting === 0;
+  btn.textContent = processing ? '⏳ Processing...' : '▶ Process All';
+
+  list.innerHTML = fileQueue.map(item => {
+    const sz = (item.file.size / 1024).toFixed(0) + ' KB';
+    const statusHtml = {
+      'waiting'  : '<span class="status-wait">⏳ Waiting</span>',
+      'uploading': '<span class="status-proc">⬆ Uploading...</span>',
+      'processing': '<span class="status-proc">⚙ Processing...</span>',
+      'ok'       : '<span class="status-ok">✅ Sent for approval</span>',
+      'duplicate': '<span class="status-dup">⚠️ Duplicate</span>',
+      'error'    : `<span class="status-err">❌ Error</span>`,
+      'rejected' : '<span class="status-err">❌ Rejected</span>',
+    }[item.status] || '';
+
+    const progShow = ['uploading','processing'].includes(item.status) ? 'show' : '';
+    const progPct  = item.status === 'uploading' ? '30%' :
+                     item.status === 'processing' ? '70%' :
+                     ['ok','duplicate','error','rejected'].includes(item.status) ? '100%' : '0%';
+    const progColor= item.status === 'error' || item.status === 'rejected' ? '#dc3545' :
+                     item.status === 'duplicate' ? '#e67e22' : '#e67e22';
+
+    const canRemove = !['uploading','processing'].includes(item.status);
+
+    return `<div class="file-item" id="fi-${item.id}">
+      <div class="file-icon">📄</div>
+      <div class="file-info">
+        <div class="file-name">${item.file.name}</div>
+        <div class="file-size">${sz}</div>
+        <div class="file-prog ${progShow}" id="fp-${item.id}">
+          <div class="file-prog-fill" id="fpf-${item.id}"
+               style="width:${progPct};background:${progColor}"></div>
+        </div>
+      </div>
+      <div class="file-status">${statusHtml}</div>
+      ${canRemove ? `<button class="file-remove" onclick="removeFile('${item.id}')">✕</button>` : ''}
+    </div>`;
+  }).join('');
 }
 
-function showOutcome(type) {
-  ['out-ok','out-dup','out-err'].forEach(id =>
-    document.getElementById(id).classList.toggle('show', id === 'out-' + type)
-  );
+function removeFile(id) {
+  fileQueue = fileQueue.filter(f => f.id !== id);
+  renderQueue();
+  updateSummary();
 }
 
-function hideAllOutcomes() {
-  ['out-ok','out-dup','out-err'].forEach(id =>
-    document.getElementById(id).classList.remove('show')
-  );
+function clearQueue() {
+  fileQueue = fileQueue.filter(f => ['uploading','processing'].includes(f.status));
+  renderQueue();
+  updateSummary();
+  document.getElementById('summary-box').classList.remove('show');
+}
+
+// Process all waiting files
+async function processAll() {
+  if (processing) return;
+  const email   = document.getElementById('sub-email').value.trim();
+  const waiting = fileQueue.filter(f => f.status === 'waiting');
+  if (waiting.length === 0) return;
+
+  processing = true;
+  renderQueue();
+
+  // Process up to 3 files in parallel
+  const CONCURRENCY = 3;
+
+  async function processItem(item) {
+    item.status = 'uploading';
+    renderQueue();
+
+    try {
+      // Upload file
+      const fd = new FormData();
+      fd.append('file', item.file);
+      fd.append('submitter_email', email);
+      const res = await fetch(API() + '/upload', {method:'POST', body:fd});
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      item.trackId = data.tracking_id || data.invoice_id;
+      item.status  = 'processing';
+      renderQueue();
+
+      // Poll for result
+      for (let i=0; i<90; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const sr   = await fetch(API() + '/status/' + item.trackId);
+          const sdata = await sr.json();
+          const ps   = sdata.pipeline_status;
+          if (ps === 'pending_approval') {
+            item.status = 'ok';
+            item.result = sdata;
+            break;
+          }
+          if (ps === 'duplicate_pending_approval') {
+            item.status = 'duplicate';
+            item.result = sdata;
+            break;
+          }
+          if (ps === 'rejected') {
+            item.status = 'rejected';
+            item.result = sdata;
+            break;
+          }
+          if (ps === 'error') {
+            item.status = 'error';
+            item.result = sdata;
+            break;
+          }
+        } catch { /* retry */ }
+      }
+
+      if (['uploading','processing'].includes(item.status)) {
+        item.status = 'error';
+      }
+
+    } catch(e) {
+      item.status = 'error';
+      item.result = {error: e.message};
+    }
+
+    renderQueue();
+    updateSummary();
+  }
+
+  // Process in batches of CONCURRENCY
+  for (let i=0; i<waiting.length; i+=CONCURRENCY) {
+    const batch = waiting.slice(i, i+CONCURRENCY);
+    await Promise.all(batch.map(item => processItem(item)));
+  }
+
+  processing = false;
+  renderQueue();
+  loadRecs(true);
+
+  const ok  = fileQueue.filter(f => f.status === 'ok').length;
+  const dup = fileQueue.filter(f => f.status === 'duplicate').length;
+  const err = fileQueue.filter(f => ['error','rejected'].includes(f.status)).length;
+  toast(`Done: ${ok} approved, ${dup} duplicate${dup!==1?'s':''}, ${err} error${err!==1?'s':''}`);
+}
+
+function updateSummary() {
+  const total = fileQueue.length;
+  const ok    = fileQueue.filter(f => f.status === 'ok').length;
+  const dup   = fileQueue.filter(f => f.status === 'duplicate').length;
+  const err   = fileQueue.filter(f => ['error','rejected'].includes(f.status)).length;
+  const done  = ok + dup + err;
+
+  if (done === 0) {
+    document.getElementById('summary-box').classList.remove('show');
+    return;
+  }
+
+  document.getElementById('summary-box').classList.add('show');
+  document.getElementById('sum-total').textContent = total;
+  document.getElementById('sum-ok').textContent    = ok;
+  document.getElementById('sum-dup').textContent   = dup;
+  document.getElementById('sum-err').textContent   = err;
 }
 
 // Records
@@ -332,8 +508,7 @@ async function loadRecs(silent=true) {
     setSrv(false);
     document.getElementById('tbody').innerHTML =
       '<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔌</div>' +
-      '<div>Cannot reach server at <b>localhost:8000</b></div>' +
-      '<div style="margin-top:5px;font-size:12px">Run: <code>python approval_server.py</code></div>' +
+      '<div>Cannot reach server at <b>web-production-40aa02.up.railway.app</b></div>' +
       '</div></td></tr>';
   }
 }
@@ -374,7 +549,8 @@ function renderRecs() {
   if (!rows.length) {
     document.getElementById('tbody').innerHTML =
       '<tr><td colspan="9"><div class="empty"><div class="empty-icon">📭</div>' +
-      '<div>No '+(activeFilter==='ALL'?'':activeFilter.toLowerCase()+' ')+'invoices</div></div></td></tr>';
+      '<div>No '+(activeFilter==='ALL'?'':activeFilter.toLowerCase()+' ')+'invoices yet</div>' +
+      '</div></td></tr>';
     return;
   }
   document.getElementById('tbody').innerHTML = rows.map(r => {
@@ -382,7 +558,7 @@ function renderRecs() {
     const bc = {PENDING:'bp',APPROVED:'ba',REJECTED:'br'}[s]||'bp';
     const amt = r.total_amount ? r.total_amount+' '+(r.currency||'AED') : '—';
     const cr  = (r.created_at||'').substring(0,16).replace('T',' ');
-    return '<tr>' +
+    return '<tr>'+
       '<td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:12px">'+(r.invoice_id||'—')+'</td>'+
       '<td style="font-weight:500">'+(r.vendor_name||'—')+'</td>'+
       '<td>'+(r.invoice_number||'—')+'</td>'+
@@ -396,132 +572,8 @@ function renderRecs() {
   }).join('');
 }
 
-// Drag & drop
-function dov(e){ e.preventDefault(); document.getElementById('drop').classList.add('over'); }
-function dlv(){ document.getElementById('drop').classList.remove('over'); }
-function ddp(e){ e.preventDefault(); dlv(); const f=e.dataTransfer.files[0]; if(f) go(f); }
-function onSel(e){ const f=e.target.files[0]; if(f) go(f); e.target.value=''; }
-
-// Main flow
-async function go(file) {
-  const email = document.getElementById('sub-email').value.trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    toast('Please enter a valid email first', 'err'); return;
-  }
-  if (file.size > 10*1024*1024) { toast('File too large (max 10MB)', 'err'); return; }
-
-  hideAllOutcomes();
-  showProg('Uploading invoice...', 5, STEPS[0]);
-
-  // Step 1 — upload
-  let trackId;
-  try {
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('submitter_email', email);
-    const res = await fetch(API() + '/upload', {method:'POST', body:fd});
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    trackId = data.tracking_id || data.invoice_id;
-    showProg('Processing invoice...', 20, STEPS[1]);
-  } catch(e) {
-    hideProg();
-    showOutcome('err');
-    document.getElementById('err-title').textContent = 'Upload failed';
-    document.getElementById('err-body').textContent  = e.message;
-    toast('Upload failed', 'err');
-    return;
-  }
-
-  // Poll for result — just update % and current step label
-  const pcts = [20, 36, 52, 68, 84, 100];
-  let lastStep = 1;
-  for (let i=0; i<90; i++) {
-    await new Promise(r=>setTimeout(r,2000));
-    try {
-      const res  = await fetch(API() + '/status/' + trackId);
-      const data = await res.json();
-      const cur  = Math.min(data.current_step || 1, 6);
-      if (cur !== lastStep) {
-        lastStep = cur;
-        const pct  = pcts[cur-1] || 20;
-        const step = STEPS[cur-1] || '';
-        showProg('Processing invoice...', pct, step);
-      }
-      const ps = data.pipeline_status;
-      if (ps === 'pending_approval') {
-        hideProg();
-        renderResult('ok', data.invoice, null, email);
-        loadRecs(true);
-        toast('Invoice sent for approval ✓');
-        return;
-      }
-      if (ps === 'duplicate_pending_approval') {
-        hideProg();
-        renderResult('dup', data.invoice, data.dup_reason, email);
-        loadRecs(true);
-        toast('Duplicate invoice detected', 'err');
-        return;
-      }
-      if (ps === 'rejected') {
-        hideProg();
-        showOutcome('err');
-        document.getElementById('err-title').textContent = 'Invoice rejected';
-        document.getElementById('err-body').textContent  = (data.errors||[]).join(', ');
-        loadRecs(true);
-        toast('Invoice rejected', 'err');
-        return;
-      }
-      if (ps === 'error') {
-        hideProg();
-        showOutcome('err');
-        document.getElementById('err-title').textContent = 'Processing error';
-        document.getElementById('err-body').textContent  = data.error || 'Unknown error';
-        toast('Processing error', 'err');
-        return;
-      }
-    } catch { /* retry silently */ }
-  }
-  // Timeout
-  hideProg();
-  showOutcome('err');
-  document.getElementById('err-title').textContent = 'Taking longer than expected';
-  document.getElementById('err-body').textContent  = 'Lambda is processing. Records will refresh automatically.';
-  loadRecs(true);
-}
-
-function renderResult(type, invoice, dupReason, email) {
-  const fields = invoice ? [
-    ['Vendor',          invoice.vendor_name],
-    ['Invoice No',      invoice.invoice_number],
-    ['Date',            invoice.invoice_date],
-    ['Amount',          invoice.total_amount ? invoice.total_amount+' '+(invoice.currency||'AED') : '—'],
-    ['Tax',             invoice.tax_amount   ? invoice.tax_amount  +' '+(invoice.currency||'AED') : '0'],
-    ['Category',        invoice.category],
-    ['Payment method',  invoice.payment_method],
-  ].filter(r=>r[1]).map(r=>
-    '<div class="inv-row"><span class="inv-lbl">'+r[0]+'</span><span class="inv-val">'+r[1]+'</span></div>'
-  ).join('') : '';
-
-  if (type === 'ok') {
-    document.getElementById('ok-grid').innerHTML = fields;
-    document.getElementById('ok-notif').style.display = email ? '' : 'none';
-    document.getElementById('ok-email').textContent   = email || '';
-    showOutcome('ok');
-  } else {
-    document.getElementById('dup-reason').textContent = dupReason ||
-      'An invoice with the same number or matching details already exists (PENDING or APPROVED).';
-    document.getElementById('dup-grid').innerHTML     = fields;
-    document.getElementById('dup-notif').style.display = email ? '' : 'none';
-    document.getElementById('dup-email').textContent   = email || '';
-    showOutcome('dup');
-  }
-}
-
 loadRecs(true);
 setInterval(()=>loadRecs(true), 10000);
 </script>
 </body>
 </html>
-
-
