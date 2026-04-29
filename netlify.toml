@@ -1,7 +1,8 @@
 [build]
   publish = "."
-  command = ""
-  ignore = "exit 0"
+  command = "echo done"
 
-[build.environment]
-  NETLIFY_SKIP_PYTHON_SETUP = "true"
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
