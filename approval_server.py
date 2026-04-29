@@ -8,33 +8,35 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from agent.tools.dynamodb_tool import update_invoice_status, get_invoice
+    from agent.tools.dynamodb_tool import (
+        update_invoice_status, get_invoice,
+        update_approval_status, update_final_status
+    )
     print("[OK] Agent tools imported successfully")
 except Exception as e:
     print(f"[ERROR] Failed to import agent tools: {e}")
     def update_invoice_status(invoice_id, status): pass
     def get_invoice(invoice_id): return None
+    def update_approval_status(invoice_id, level, status): pass
+    def update_final_status(invoice_id, status): pass
 
 try:
     from agent.agentcore_runtime import run_petty_cash_agent
     print("[OK] AgentCore runtime imported successfully")
 except Exception as e:
-    print(f"[WARN] AgentCore runtime not available: {e}")
+    print(f"[WARN] AgentCore not available: {e}")
     try:
         from agent.agent_core import run_petty_cash_agent
         print("[OK] Fallback to agent_core")
     except Exception as e2:
         print(f"[ERROR] Could not import agent: {e2}")
         def run_petty_cash_agent(bucket, key, submitter_email=''):
-            return {
-                'status'    : 'error',
-                'errors'    : ['Agent not available'],
-                'invoice'   : {},
-                'dup_reason': '',
-                'invoice_id': ''
-            }
+            return {'status':'error','errors':['Agent not available'],'invoice':{},'dup_reason':'','invoice_id':''}
 
-pipeline_status = {}
+pipeline_status  = {}
+MANAGER1_EMAIL   = os.getenv('APPROVAL_EMAIL', '')
+MANAGER2_EMAIL   = os.getenv('MANAGER2_EMAIL', '')
+APPROVAL_API_URL = os.getenv('APPROVAL_API_URL', 'https://web-production-40aa02.up.railway.app')
 
 def get_aws_session():
     return boto3.Session(
@@ -57,97 +59,114 @@ def ensure_ses_verified(email: str) -> bool:
         if status == 'Success':
             return True
         ses.verify_email_identity(EmailAddress=email)
-        print(f"[SES] Verification email sent to {email}")
+        print(f"[SES] Verification sent to {email}")
         return False
     except Exception as e:
-        print(f"[SES] Could not check/verify {email}: {e}")
+        print(f"[SES] Error: {e}")
         return False
 
-def send_submitter_notification(submitter_email: str, invoice: dict, status: str, invoice_id: str):
-    if not submitter_email or not submitter_email.strip():
-        print(f"[NOTIFY] No submitter email — skipping")
-        return
-
-    submitter_email = submitter_email.strip()
-    print(f"[NOTIFY] Sending {status} notification to: {submitter_email}")
-
-    if not ensure_ses_verified(submitter_email):
-        print(f"[NOTIFY] {submitter_email} not yet verified — verification email sent")
-        return
-
+def send_approval_request_email(invoice: dict, invoice_id: str, level: int,
+                                to_email: str, is_duplicate: bool = False):
+    """Send Level 1 or Level 2 approval request email."""
     try:
-        ses     = get_aws_session().client('ses')
         vendor  = invoice.get('vendor_name', 'Unknown')
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
         inv_num = invoice.get('invoice_number', 'N/A')
         date    = invoice.get('invoice_date', 'N/A')
+        s3_key  = invoice.get('s3_key', '')
+        items   = invoice.get('line_items', [])
 
-        is_approved = (status == 'APPROVED')
-        color   = '#28a745' if is_approved else '#dc3545'
-        icon    = '✅' if is_approved else '❌'
-        subject = f"{icon} Invoice {status} — {vendor} — {amount} {curr}"
+        approve_link = f"{APPROVAL_API_URL}/action?invoice_id={invoice_id}&action=approve&level={level}"
+        reject_link  = f"{APPROVAL_API_URL}/action?invoice_id={invoice_id}&action=reject&level={level}"
+
+        level_label = 'Financial Manager' if level == 1 else 'Manager'
+        level_badge = f'Approval Level {level} of 2'
+
+        dup_banner = ''
+        if is_duplicate:
+            dup_banner = """<div style="background:#fff0f0;border:2px solid #cc0000;border-radius:8px;
+padding:14px 18px;margin:16px 0">
+<p style="margin:0;color:#cc0000;font-size:14px;font-weight:700">⚠️ WARNING: POSSIBLE DUPLICATE INVOICE</p>
+<p style="margin:6px 0 0;color:#cc0000;font-size:12px">Please review carefully before approving.</p>
+</div>"""
+
+        line_rows = ''
+        if isinstance(items, list):
+            for i, item in enumerate(items[:10]):
+                bg = '#f9f9f9' if i % 2 == 0 else '#fff'
+                line_rows += (
+                    f'<tr style="background:{bg}">'
+                    f'<td style="padding:7px 12px;font-size:12px">{item.get("description","?")}</td>'
+                    f'<td style="padding:7px 12px;font-size:12px;text-align:center">{item.get("qty",1)}</td>'
+                    f'<td style="padding:7px 12px;font-size:12px;text-align:right">{item.get("unit_price",0)}</td>'
+                    f'<td style="padding:7px 12px;font-size:12px;text-align:right;font-weight:600">'
+                    f'{item.get("total",0)} {curr}</td></tr>'
+                )
+
+        subject_prefix = '[DUPLICATE] ' if is_duplicate else ''
+        subject = (f"{subject_prefix}[Al Islami Foods] Petty Cash {level_badge} "
+                   f"— {vendor} — {amount} {curr}")
 
         html = f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0">
 <tr><td align="center">
-<table width="540" cellpadding="0" cellspacing="0"
+<table width="600" cellpadding="0" cellspacing="0"
   style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
   <tr>
     <td style="background:linear-gradient(135deg,#1a472a,#2d6a4f);padding:24px 32px;text-align:center">
       <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">🌿 Al Islami Foods</h1>
-      <p style="margin:4px 0 0;color:#a8d5b5;font-size:13px">Petty Cash — Invoice Decision</p>
+      <p style="margin:4px 0 0;color:#a8d5b5;font-size:13px">Petty Cash — Approval Request</p>
+      <div style="margin-top:10px;background:rgba(255,255,255,0.2);border-radius:20px;
+                  padding:5px 18px;display:inline-block">
+        <span style="color:#fff;font-size:12px;font-weight:700">{level_badge} — {level_label}</span>
+      </div>
     </td>
   </tr>
-  <tr>
-    <td style="padding:28px 32px;text-align:center">
-      <div style="font-size:52px;margin-bottom:8px">{icon}</div>
-      <h2 style="color:{color};font-size:22px;margin:0 0 6px">Your Invoice has been {status}</h2>
-      <p style="color:#6c757d;font-size:14px;margin:0 0 20px">
-        The finance manager has reviewed your submission.
-      </p>
-      <table width="100%" cellpadding="0" cellspacing="0"
-             style="background:#f8f9fa;border-radius:8px;overflow:hidden;text-align:left">
-        <tr style="background:#e9ecef">
-          <td colspan="2" style="padding:10px 16px;font-weight:700;font-size:11px;
-                                  color:#495057;text-transform:uppercase;letter-spacing:.5px">
-            Invoice Details
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 16px;color:#6c757d;font-size:13px;width:38%">Vendor</td>
-          <td style="padding:8px 16px;font-weight:600;font-size:13px">{vendor}</td>
-        </tr>
-        <tr style="background:#fff">
-          <td style="padding:8px 16px;color:#6c757d;font-size:13px">Invoice No</td>
-          <td style="padding:8px 16px;font-weight:600;font-size:13px">{inv_num}</td>
-        </tr>
-        <tr>
+  <tr><td style="padding:24px 32px">
+    {dup_banner}
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#f8f9fa;border-radius:8px;overflow:hidden;margin-bottom:20px">
+      <tr style="background:#e9ecef">
+        <td colspan="2" style="padding:10px 16px;font-weight:700;font-size:11px;
+            color:#495057;text-transform:uppercase;letter-spacing:.5px">Invoice Details</td>
+      </tr>
+      <tr><td style="padding:8px 16px;color:#6c757d;font-size:13px;width:38%">Invoice ID</td>
+          <td style="padding:8px 16px;font-weight:600;font-size:13px;font-family:monospace">{invoice_id}</td></tr>
+      <tr style="background:#fff">
+          <td style="padding:8px 16px;color:#6c757d;font-size:13px">Vendor</td>
+          <td style="padding:8px 16px;font-weight:600;font-size:13px">{vendor}</td></tr>
+      <tr><td style="padding:8px 16px;color:#6c757d;font-size:13px">Invoice No</td>
+          <td style="padding:8px 16px;font-weight:600;font-size:13px">{inv_num}</td></tr>
+      <tr style="background:#fff">
           <td style="padding:8px 16px;color:#6c757d;font-size:13px">Date</td>
-          <td style="padding:8px 16px;font-weight:600;font-size:13px">{date}</td>
-        </tr>
-        <tr style="background:#fff">
-          <td style="padding:8px 16px;color:#6c757d;font-size:13px">Amount</td>
-          <td style="padding:8px 16px;font-weight:700;font-size:14px;color:{color}">{amount} {curr}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px 16px;color:#6c757d;font-size:13px">Decision</td>
-          <td style="padding:10px 16px">
-            <span style="background:{color};color:#fff;padding:4px 14px;
-                         border-radius:20px;font-size:12px;font-weight:700">{status}</span>
-          </td>
-        </tr>
-      </table>
-      <p style="font-size:11px;color:#adb5bd;margin-top:16px">
-        Invoice ID: <span style="font-family:monospace">{invoice_id}</span>
+          <td style="padding:8px 16px;font-weight:600;font-size:13px">{date}</td></tr>
+      <tr style="background:#e8f5e9">
+          <td style="padding:10px 16px;color:#2d6a4f;font-size:13px;font-weight:700">Amount</td>
+          <td style="padding:10px 16px;font-weight:800;font-size:16px;color:#1a472a">{amount} {curr}</td></tr>
+    </table>
+    {'<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dee2e6;border-radius:8px;overflow:hidden;margin-bottom:20px"><tr style="background:#343a40"><th style="padding:8px 12px;color:#fff;font-size:11px;text-align:left">Description</th><th style="padding:8px 12px;color:#fff;font-size:11px;text-align:center">Qty</th><th style="padding:8px 12px;color:#fff;font-size:11px;text-align:right">Price</th><th style="padding:8px 12px;color:#fff;font-size:11px;text-align:right">Total</th></tr>' + line_rows + '</table>' if line_rows else ''}
+    <div style="text-align:center;padding:20px;background:#f8f9fa;border-radius:8px">
+      <p style="margin:0 0 14px;font-size:14px;font-weight:600;color:#495057">
+        Action Required — <strong>{level_label}</strong> ({level_badge})
       </p>
-    </td>
-  </tr>
+      <a href="{approve_link}"
+         style="display:inline-block;background:#28a745;color:#fff;text-decoration:none;
+                padding:13px 32px;border-radius:6px;font-size:14px;font-weight:700;margin:0 6px">
+        ✅ APPROVE
+      </a>
+      <a href="{reject_link}"
+         style="display:inline-block;background:#dc3545;color:#fff;text-decoration:none;
+                padding:13px 32px;border-radius:6px;font-size:14px;font-weight:700;margin:0 6px">
+        ❌ REJECT
+      </a>
+    </div>
+    {'<p style="margin-top:12px;font-size:11px;color:#adb5bd">📎 s3://' + os.getenv("S3_BUCKET_NAME","") + "/" + s3_key + "</p>" if s3_key else ""}
+  </td></tr>
   <tr>
-    <td style="background:#f8f9fa;padding:14px 32px;text-align:center;
-               border-top:1px solid #dee2e6">
+    <td style="background:#f8f9fa;padding:12px 32px;text-align:center;border-top:1px solid #dee2e6">
       <p style="margin:0;font-size:11px;color:#adb5bd">
         Al Islami Foods Petty Cash AI &nbsp;|&nbsp; AgentCore · Textract · Claude
       </p>
@@ -159,36 +178,75 @@ def send_submitter_notification(submitter_email: str, invoice: dict, status: str
 </body></html>"""
 
         plain = f"""
-Al Islami Foods — Petty Cash Decision
-======================================
-Your invoice has been {status} by the finance manager.
+Al Islami Foods — Petty Cash {level_badge}
+You are: {level_label}
+{'*** DUPLICATE INVOICE WARNING ***' if is_duplicate else ''}
+============================================
+Vendor     : {vendor}
+Invoice No : {inv_num}
+Date       : {date}
+Amount     : {amount} {curr}
+ID         : {invoice_id}
 
-Vendor      : {vendor}
-Invoice No  : {inv_num}
-Date        : {date}
-Amount      : {amount} {curr}
-Decision    : {status}
-Invoice ID  : {invoice_id}
-
-Al Islami Foods Petty Cash AI
+APPROVE: {approve_link}
+REJECT : {reject_link}
         """
 
+        ses = get_aws_session().client('ses')
         ses.send_email(
-            Source=os.getenv('APPROVAL_EMAIL'),
-            Destination={'ToAddresses': [submitter_email]},
+            Source=MANAGER1_EMAIL,
+            Destination={'ToAddresses': [to_email]},
             Message={
-                'Subject': {'Data': subject,  'Charset': 'UTF-8'},
+                'Subject': {'Data': subject, 'Charset': 'UTF-8'},
                 'Body': {
                     'Html': {'Data': html,  'Charset': 'UTF-8'},
                     'Text': {'Data': plain, 'Charset': 'UTF-8'}
                 }
             }
         )
-        print(f"[NOTIFY] ✓ Sent to {submitter_email} — {status}")
+        print(f"[EMAIL] Level {level} request sent to: {to_email}")
 
     except Exception as e:
-        print(f"[NOTIFY ERROR] {submitter_email}: {e}")
+        print(f"[EMAIL ERROR] Level {level} to {to_email}: {e}")
+        try:
+            sns = get_aws_session().client('sns')
+            sns.publish(
+                TopicArn=os.getenv('SNS_TOPIC_ARN'),
+                Subject=f"[Al Islami Foods] Approval L{level} — {invoice.get('vendor_name')}",
+                Message=f"APPROVE: {APPROVAL_API_URL}/action?invoice_id={invoice_id}&action=approve&level={level}\nREJECT: {APPROVAL_API_URL}/action?invoice_id={invoice_id}&action=reject&level={level}"
+            )
+        except Exception as e2:
+            print(f"[SNS ERROR] {e2}")
 
+def send_submitter_notification(submitter_email: str, invoice: dict,
+                                status: str, invoice_id: str):
+    """Notify the submitter of the final decision."""
+    if not submitter_email:
+        return
+    submitter_email = submitter_email.strip()
+    if not ensure_ses_verified(submitter_email):
+        return
+    try:
+        ses    = get_aws_session().client('ses')
+        vendor = invoice.get('vendor_name', 'Unknown')
+        amount = invoice.get('total_amount', 0)
+        curr   = invoice.get('currency', 'AED')
+        color  = '#28a745' if 'APPROVED' in status else '#dc3545'
+        icon   = '✅' if 'APPROVED' in status else '❌'
+        label  = 'APPROVED' if 'APPROVED' in status else 'REJECTED'
+        subject = f"{icon} Invoice {label} — {vendor} — {amount} {curr}"
+        plain   = f"Al Islami Foods: Your invoice {vendor} {amount} {curr} has been {label} by both managers. ID: {invoice_id}"
+        ses.send_email(
+            Source=MANAGER1_EMAIL,
+            Destination={'ToAddresses': [submitter_email]},
+            Message={
+                'Subject': {'Data': subject, 'Charset': 'UTF-8'},
+                'Body': {'Text': {'Data': plain, 'Charset': 'UTF-8'}}
+            }
+        )
+        print(f"[NOTIFY] Submitter notified: {submitter_email} -> {label}")
+    except Exception as e:
+        print(f"[NOTIFY ERROR] {e}")
 
 def parse_multipart(body: bytes, content_type: str):
     result = {'file_data': None, 'filename': 'invoice.pdf', 'submitter_email': ''}
@@ -197,9 +255,7 @@ def parse_multipart(body: bytes, content_type: str):
     boundary = content_type.split('boundary=')[-1].strip().encode()
     parts    = body.split(b'--' + boundary)
     for part in parts:
-        if b'Content-Disposition' not in part:
-            continue
-        if b'\r\n\r\n' not in part:
+        if b'Content-Disposition' not in part or b'\r\n\r\n' not in part:
             continue
         header_bytes, content = part.split(b'\r\n\r\n', 1)
         content    = content.rstrip(b'\r\n--')
@@ -238,56 +294,99 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
         path   = parsed.path
 
-        if path == '/' or path == '' or path == '/health':
+        # ── Health / Root ──────────────────────────────────────────────────
+        if path in ['/', '', '/health']:
             self._json(200, {
-                'status' : 'online',
-                'service': 'Al Islami Foods Petty Cash AI',
-                'version': '1.0',
-                'region' : os.getenv('AWS_DEFAULT_REGION', 'eu-central-1'),
-                'endpoints': [
-                    'POST /upload',
-                    'GET  /records',
-                    'GET  /status/TRACKING_ID',
-                    'GET  /action?invoice_id=X&action=approve|reject',
-                    'GET  /health'
-                ]
+                'status'   : 'online',
+                'service'  : 'Al Islami Foods Petty Cash AI',
+                'version'  : '2.0',
+                'approval' : 'Two-level: Financial Manager + Manager',
+                'manager1' : MANAGER1_EMAIL,
+                'manager2' : MANAGER2_EMAIL or 'not configured',
             })
 
+        # ── Approve / Reject ───────────────────────────────────────────────
         elif path == '/action':
             invoice_id = params.get('invoice_id', [None])[0]
             action     = params.get('action',     [None])[0]
+            level      = int(params.get('level',  ['1'])[0])
+
             if not invoice_id or action not in ['approve', 'reject']:
                 return self._respond(400, 'Invalid request')
+
             invoice = get_invoice(invoice_id)
             if not invoice:
                 return self._respond(404, f'Invoice {invoice_id} not found')
-            if invoice.get('status') in ['APPROVED', 'REJECTED']:
-                return self._html_response(invoice_id, invoice.get('status'), invoice, already_done=True)
+
+            # Check if already actioned at this level
+            level_field = f'approval_{level}_status'
+            current     = invoice.get(level_field, 'PENDING')
+            if current in ['APPROVED', 'REJECTED']:
+                return self._html_page(invoice_id, current, invoice,
+                                       already_done=True, level=level)
 
             new_status = 'APPROVED' if action == 'approve' else 'REJECTED'
-            update_invoice_status(invoice_id, new_status)
-            invoice['status'] = new_status
+            update_approval_status(invoice_id, level, new_status)
+            invoice[level_field] = new_status
+            print(f"[ACTION] {invoice_id} Level {level} -> {new_status}")
 
-            submitter_email = invoice.get('submitter_email', '').strip()
-            print(f"[ACTION] {invoice_id} -> {new_status} | submitter={submitter_email}")
+            if action == 'reject':
+                # Any rejection → final REJECTED
+                update_final_status(invoice_id, 'REJECTED')
+                submitter = invoice.get('submitter_email', '')
+                if submitter:
+                    threading.Thread(
+                        target=send_submitter_notification,
+                        args=(submitter, invoice, 'REJECTED', invoice_id),
+                        daemon=True
+                    ).start()
+                return self._html_page(invoice_id, 'REJECTED', invoice, level=level)
 
-            if submitter_email:
-                threading.Thread(
-                    target=send_submitter_notification,
-                    args=(submitter_email, invoice, new_status, invoice_id),
-                    daemon=True
-                ).start()
-            else:
-                print(f"[ACTION] No submitter_email on {invoice_id}")
+            if action == 'approve' and level == 1:
+                if MANAGER2_EMAIL:
+                    # Send to Manager 2
+                    update_invoice_status(invoice_id, 'AWAITING_MANAGER2')
+                    invoice['status'] = 'AWAITING_MANAGER2'
+                    is_dup = 'duplicate' in invoice.get('status', '').lower()
+                    threading.Thread(
+                        target=send_approval_request_email,
+                        args=(invoice, invoice_id, 2, MANAGER2_EMAIL, is_dup),
+                        daemon=True
+                    ).start()
+                    return self._html_page(invoice_id, 'APPROVED_L1', invoice, level=1)
+                else:
+                    # No Manager 2 — fully approved
+                    update_final_status(invoice_id, 'FULLY_APPROVED')
+                    submitter = invoice.get('submitter_email', '')
+                    if submitter:
+                        threading.Thread(
+                            target=send_submitter_notification,
+                            args=(submitter, invoice, 'FULLY_APPROVED', invoice_id),
+                            daemon=True
+                        ).start()
+                    return self._html_page(invoice_id, 'FULLY_APPROVED', invoice, level=1)
 
-            return self._html_response(invoice_id, new_status, invoice)
+            if action == 'approve' and level == 2:
+                # Both levels approved
+                update_final_status(invoice_id, 'FULLY_APPROVED')
+                invoice['final_status'] = 'FULLY_APPROVED'
+                submitter = invoice.get('submitter_email', '')
+                if submitter:
+                    threading.Thread(
+                        target=send_submitter_notification,
+                        args=(submitter, invoice, 'FULLY_APPROVED', invoice_id),
+                        daemon=True
+                    ).start()
+                return self._html_page(invoice_id, 'FULLY_APPROVED', invoice, level=2)
 
+        # ── Records ────────────────────────────────────────────────────────
         elif path == '/records':
             try:
                 self._json(200, get_all_records())
             except Exception as e:
                 self._respond(500, str(e))
 
+        # ── Status polling ─────────────────────────────────────────────────
         elif path.startswith('/status/'):
             tid    = path.split('/')[-1]
             status = pipeline_status.get(tid, {'pipeline_status': 'processing', 'current_step': 1})
@@ -303,7 +402,6 @@ class Handler(BaseHTTPRequestHandler):
             content_type = self.headers.get('Content-Type', '')
             length       = int(self.headers.get('Content-Length', 0))
             body         = self.rfile.read(length)
-
             parsed          = parse_multipart(body, content_type)
             file_data       = parsed['file_data']
             filename        = parsed['filename']
@@ -326,11 +424,7 @@ class Handler(BaseHTTPRequestHandler):
             print(f"[UPLOAD] -> s3://{os.getenv('S3_BUCKET_NAME')}/{s3_key}")
 
             if submitter_email:
-                threading.Thread(
-                    target=ensure_ses_verified,
-                    args=(submitter_email,),
-                    daemon=True
-                ).start()
+                threading.Thread(target=ensure_ses_verified, args=(submitter_email,), daemon=True).start()
 
             tracking_id = str(uuid.uuid4())[:8].upper()
             pipeline_status[tracking_id] = {'pipeline_status': 'processing', 'current_step': 1}
@@ -350,22 +444,21 @@ class Handler(BaseHTTPRequestHandler):
                         'dup_reason'     : result.get('dup_reason', ''),
                         'errors'         : result.get('errors', []),
                     }
-                    print(f"[PIPELINE] {tid} -> {result.get('status')} | submitter={sub_email}")
+                    print(f"[PIPELINE] {tid} -> {result.get('status')}")
                 except Exception as e:
                     pipeline_status[tid] = {
                         'pipeline_status': 'error', 'current_step': 1, 'error': str(e)
                     }
-                    print(f"[ERROR] {tid}: {e}")
                     import traceback; traceback.print_exc()
 
             threading.Thread(target=run_agent, args=(tracking_id, s3_key, submitter_email), daemon=True).start()
             self._json(200, {'tracking_id': tracking_id, 'invoice_id': tracking_id, 's3_key': s3_key})
 
         except Exception as e:
-            print(f"[UPLOAD ERROR] {e}")
             import traceback; traceback.print_exc()
             self._respond(500, str(e))
 
+    # ── Helpers ────────────────────────────────────────────────────────────
     def _cors(self):
         self.send_header('Access-Control-Allow-Origin',  '*')
         self.send_header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
@@ -389,41 +482,55 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers(); self.wfile.write(payload)
         except Exception: pass
 
-    def _html_response(self, invoice_id, status, invoice, already_done=False):
-        color  = '#28a745' if status == 'APPROVED' else '#dc3545'
-        icon   = '&#10003;' if status == 'APPROVED' else '&#10007;'
+    def _html_page(self, invoice_id, status, invoice, already_done=False, level=1):
+        cfg = {
+            'APPROVED'       : ('#28a745', '&#10003;', 'Approved by you'),
+            'APPROVED_L1'    : ('#17a2b8', '&#10003;', 'Level 1 Approved'),
+            'FULLY_APPROVED' : ('#28a745', '&#10003;', 'Fully Approved'),
+            'REJECTED'       : ('#dc3545', '&#10007;', 'Rejected'),
+        }
+        color, icon, label = cfg.get(status, ('#6c757d', '?', status))
         msg    = 'already been' if already_done else 'been'
         vendor = invoice.get('vendor_name', 'Unknown')
         amount = invoice.get('total_amount', 0)
         curr   = invoice.get('currency', 'AED')
         sub    = invoice.get('submitter_email', '').strip()
-        notif  = (f'<p style="color:#6c757d;font-size:13px;margin-top:12px">'
-                  f'Notification sent to: <strong>{sub}</strong></p>') if sub else ''
+
+        extra = ''
+        if status == 'APPROVED_L1':
+            extra = f'<p style="color:#17a2b8;font-size:13px;margin-top:12px">📧 Approval request forwarded to Manager (Level 2)</p>'
+        if status == 'FULLY_APPROVED' and sub:
+            extra = f'<p style="color:#28a745;font-size:13px;margin-top:12px">📧 Submitter notified: {sub}</p>'
+        if status == 'REJECTED' and sub:
+            extra = f'<p style="color:#dc3545;font-size:13px;margin-top:12px">📧 Submitter notified: {sub}</p>'
+
         html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invoice {status}</title>
 <style>
 body{{font-family:'Segoe UI',Arial,sans-serif;background:#f4f4f4;
   display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}}
-.card{{background:#fff;border-radius:16px;padding:40px 48px;text-align:center;
+.card{{background:#fff;border-radius:16px;padding:36px 44px;text-align:center;
   max-width:440px;width:92%;box-shadow:0 4px 24px rgba(0,0,0,.1)}}
-.icon{{font-size:56px;color:{color};margin-bottom:8px}}
-h2{{color:#212529;margin:8px 0;font-size:22px}}
-.badge{{background:{color};color:#fff;padding:10px 28px;border-radius:24px;
-  font-size:15px;font-weight:700;display:inline-block;margin:16px 0}}
+.level{{background:#e9ecef;color:#495057;font-size:11px;font-weight:700;
+  padding:3px 12px;border-radius:10px;display:inline-block;margin-bottom:12px}}
+.icon{{font-size:52px;color:{color};margin-bottom:8px}}
+h2{{color:#212529;margin:8px 0;font-size:20px}}
+.badge{{background:{color};color:#fff;padding:9px 26px;border-radius:24px;
+  font-size:14px;font-weight:700;display:inline-block;margin:12px 0}}
 .detail{{color:#6c757d;font-size:14px;line-height:1.8}}
-.id{{font-family:monospace;font-size:12px;color:#aaa;margin-top:16px}}
-.brand{{color:#2d6a4f;font-size:11px;margin-top:20px;font-weight:600}}
+.id{{font-family:monospace;font-size:11px;color:#aaa;margin-top:14px}}
+.brand{{color:#2d6a4f;font-size:11px;margin-top:16px;font-weight:600}}
 </style></head>
 <body><div class="card">
+  <div class="level">Level {level} of 2</div>
   <div class="icon">{icon}</div>
-  <h2>Invoice has {msg} {status}</h2>
-  <div class="badge">{status}</div>
+  <h2>Invoice has {msg} {label}</h2>
+  <div class="badge">{label.upper()}</div>
   <div class="detail"><strong>{vendor}</strong><br>{amount} {curr}</div>
-  {notif}
+  {extra}
   <div class="id">Invoice ID: {invoice_id}</div>
   <div class="brand">Al Islami Foods — Petty Cash AI</div>
 </div></body></html>"""
+
         try:
             payload = html.encode('utf-8')
             self.send_response(200); self._cors()
@@ -438,22 +545,17 @@ h2{{color:#212529;margin:8px 0;font-size:22px}}
 if __name__ == '__main__':
     port   = int(os.getenv('PORT', 8000))
     server = HTTPServer(('0.0.0.0', port), Handler)
-    print(f"\nAl Islami Foods — Approval Server")
-    print(f"{'='*45}")
-    print(f"Running on : http://0.0.0.0:{port}")
-    print(f"Region     : {os.getenv('AWS_DEFAULT_REGION', 'eu-central-1')}")
-    print(f"S3 Bucket  : {os.getenv('S3_BUCKET_NAME', 'not set')}")
-    print(f"DynamoDB   : {os.getenv('DYNAMODB_TABLE', 'al-islami-petty-cash')}")
-    print(f"{'='*45}")
-    print(f"\nEndpoints:")
-    print(f"  GET  /                        service info")
-    print(f"  GET  /health                  health check")
-    print(f"  GET  /records                 all DynamoDB records")
-    print(f"  POST /upload                  upload invoice + submitter email")
-    print(f"  GET  /status/TRACKING_ID      pipeline progress")
-    print(f"  GET  /action?invoice_id=X&action=approve|reject")
-    print(f"\nFlow:")
-    print(f"  Upload -> S3 -> Textract -> Claude -> DynamoDB -> Manager email")
-    print(f"  Manager approves/rejects -> Submitter notified automatically")
+    print(f"\nAl Islami Foods — Approval Server v2.0")
+    print(f"{'='*48}")
+    print(f"Running on  : http://0.0.0.0:{port}")
+    print(f"Region      : {os.getenv('AWS_DEFAULT_REGION', 'eu-central-1')}")
+    print(f"Manager 1   : {MANAGER1_EMAIL} (Financial Manager)")
+    print(f"Manager 2   : {MANAGER2_EMAIL or 'NOT SET'} (Manager)")
+    print(f"{'='*48}")
+    print(f"\nTwo-level approval flow:")
+    print(f"  1. Invoice uploaded -> Financial Manager email sent")
+    print(f"  2. FM approves -> Manager email sent")
+    print(f"  3. Manager approves -> FULLY APPROVED -> submitter notified")
+    print(f"  Either rejects -> REJECTED -> submitter notified")
     print(f"\nPress Ctrl+C to stop\n")
     server.serve_forever()

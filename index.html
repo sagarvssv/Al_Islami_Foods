@@ -18,7 +18,7 @@ nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 32px;height
 .nav-right{display:flex;align-items:center;gap:14px}
 .dot{width:8px;height:8px;border-radius:50%;background:#95e4b3;display:inline-block}.dot.off{background:#e74c3c}
 .nav-tag{font-size:11px;color:rgba(255,255,255,0.65)}
-.wrap{max-width:1100px;margin:0 auto;padding:24px 18px}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 18px}
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
 .stat{background:var(--white);border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.07);
   border-top:3px solid var(--g3);cursor:pointer;transition:transform .15s}
@@ -33,10 +33,8 @@ nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 32px;height
 .email-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
 .email-row label{font-size:13px;font-weight:600;color:var(--g1);white-space:nowrap;min-width:140px;padding-top:9px}
 .email-wrap{flex:1}
-.email-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
-  font-size:13px;outline:none;transition:border-color .2s}
-.email-input:focus{border-color:var(--g2)}
-.email-input.err{border-color:var(--red);background:#fff5f5}
+.email-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;transition:border-color .2s}
+.email-input:focus{border-color:var(--g2)}.email-input.err{border-color:var(--red);background:#fff5f5}
 .email-hint{font-size:11px;color:var(--muted);margin-top:4px}
 .drop{border:2px dashed var(--g3);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s}
 .drop:hover,.drop.over{background:var(--g4);border-color:var(--g1)}
@@ -44,10 +42,8 @@ nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 32px;height
 .drop-icon{font-size:32px;margin-bottom:8px}
 .drop-main{font-size:14px;color:var(--muted);margin-bottom:4px}
 .drop-sub{font-size:11px;color:#aaa}
-
-/* Multi-file queue */
-.file-queue{margin-top:14px;display:none}
-.file-queue.show{display:block}
+/* File queue */
+.file-queue{margin-top:14px;display:none}.file-queue.show{display:block}
 .queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .queue-title{font-size:13px;font-weight:600;color:var(--g1)}
 .queue-actions{display:flex;gap:8px}
@@ -55,15 +51,14 @@ nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 32px;height
   border:1px solid var(--border);background:var(--white);color:var(--muted);transition:all .15s}
 .btn-sm:hover{background:var(--light)}
 .btn-primary{background:var(--g2);color:#fff;border-color:var(--g2)}
-.btn-primary:hover{background:var(--g1)}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary:hover{background:var(--g1)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
 .file-item{display:flex;align-items:center;gap:10px;padding:10px 14px;
   background:var(--light);border-radius:8px;margin-bottom:8px;border:1px solid var(--border)}
 .file-icon{font-size:20px;flex-shrink:0}
 .file-info{flex:1;min-width:0}
 .file-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-size{font-size:11px;color:var(--muted)}
-.file-status{flex-shrink:0;min-width:120px;text-align:right}
+.file-status{flex-shrink:0;min-width:140px;text-align:right}
 .status-wait{font-size:12px;color:var(--muted)}
 .status-proc{font-size:12px;color:#e67e22;font-weight:600}
 .status-ok{font-size:12px;color:var(--g1);font-weight:600}
@@ -74,28 +69,25 @@ nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 32px;height
 .file-prog-fill{height:3px;background:#e67e22;border-radius:2px;transition:width .5s}
 .file-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 6px}
 .file-remove:hover{color:var(--red)}
-
-/* Summary */
-.summary-box{margin-top:14px;padding:14px 18px;background:var(--g4);
-  border:1px solid var(--g3);border-radius:8px;display:none}
+.summary-box{margin-top:14px;padding:14px 18px;background:var(--g4);border:1px solid var(--g3);border-radius:8px;display:none}
 .summary-box.show{display:block}
 .summary-title{font-size:13px;font-weight:700;color:var(--g1);margin-bottom:8px}
 .summary-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
-.sum-label{color:var(--muted)}
-.sum-val{font-weight:600}
-.sum-val.ok{color:var(--g1)}
-.sum-val.dup{color:#e65100}
-.sum-val.err{color:var(--red)}
-
+.sum-label{color:var(--muted)}.sum-val{font-weight:600}
+.sum-val.ok{color:var(--g1)}.sum-val.dup{color:#e65100}.sum-val.err{color:var(--red)}
 /* Table */
 .tbl-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:var(--g1);color:#fff;padding:10px 12px;text-align:left;font-size:11px;
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--g1);color:#fff;padding:9px 10px;text-align:left;font-size:10px;
   font-weight:600;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
-td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+td{padding:9px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
 tr:hover td{background:#f8fff8}
-.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
-.bp{background:#fff3cd;color:#856404}.ba{background:#d4edda;color:#155724}.br{background:#fde;color:var(--red)}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.bp{background:#fff3cd;color:#856404}.ba{background:#d4edda;color:#155724}
+.br{background:#fde;color:var(--red)}.bw{background:#e9ecef;color:#495057}
+.bfa{background:#d1ecf1;color:#0c5460}.brej{background:#fde;color:var(--red)}
+.bfull{background:#d4edda;color:#155724;font-weight:800}
+.bawm{background:#fff3cd;color:#856404}
 .ftabs{display:flex;gap:6px;flex-wrap:wrap}
 .ftab{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;
   border:1px solid var(--border);background:var(--white);color:var(--muted);transition:all .15s}
@@ -106,6 +98,10 @@ tr:hover td{background:#f8fff8}
 .btn:hover{background:var(--light)}
 .empty{text-align:center;padding:36px;color:var(--muted)}
 .empty-icon{font-size:32px;margin-bottom:8px}
+/* Approval legend */
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 22px;
+  border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.legend-item{display:flex;align-items:center;gap:4px}
 #toast{position:fixed;bottom:22px;right:22px;background:var(--g1);color:#fff;
   padding:11px 18px;border-radius:8px;font-size:13px;font-weight:500;
   box-shadow:0 4px 12px rgba(0,0,0,0.18);transform:translateY(80px);
@@ -134,88 +130,66 @@ tr:hover td{background:#f8fff8}
   <div class="stats">
     <div class="stat"     onclick="filter('ALL')"><div class="s-label">Total</div><div class="s-val" id="st">—</div></div>
     <div class="stat ora" onclick="filter('PENDING')"><div class="s-label">Pending</div><div class="s-val" id="sp">—</div></div>
-    <div class="stat"     onclick="filter('APPROVED')"><div class="s-label">Approved</div><div class="s-val" id="sa">—</div></div>
+    <div class="stat"     onclick="filter('FULLY_APPROVED')"><div class="s-label">Fully Approved</div><div class="s-val" id="sa">—</div></div>
     <div class="stat red" onclick="filter('REJECTED')"><div class="s-label">Rejected</div><div class="s-val" id="sr">—</div></div>
-    <div class="stat pur" onclick="filter('DUPLICATE')"><div class="s-label">Duplicates</div><div class="s-val" id="sd">—</div></div>
+    <div class="stat pur" onclick="filter('AWAITING_MANAGER2')"><div class="s-label">Awaiting Mgr 2</div><div class="s-val" id="sam2">—</div></div>
   </div>
 
-  <!-- Upload card -->
+  <!-- Upload -->
   <div class="card">
     <div class="ch">
       <span class="ct">📤 Upload Invoices</span>
-      <span style="font-size:11px;color:var(--muted)">PDF · JPG · PNG · Up to 10 files at once</span>
+      <span style="font-size:11px;color:var(--muted)">PDF · JPG · PNG · Up to 10 files</span>
     </div>
     <div class="cb">
-
-      <!-- Email -->
       <div class="email-row">
         <label for="sub-email">📧 Your email</label>
         <div class="email-wrap">
           <input type="email" id="sub-email" class="email-input"
                  placeholder="yourname@company.com" oninput="onEmail()">
-          <div class="email-hint">You'll receive a notification when each invoice is approved or rejected.</div>
+          <div class="email-hint">You'll receive a notification after both managers approve or reject.</div>
         </div>
       </div>
-
-      <!-- Drop zone -->
       <div class="drop disabled" id="drop"
            onclick="document.getElementById('fi').click()"
            ondragover="dov(event)" ondragleave="dlv()" ondrop="ddp(event)">
         <div class="drop-icon">📁</div>
         <div class="drop-main" id="drop-main">Enter your email above, then drop invoices here</div>
-        <div class="drop-sub">Select multiple files · Each processed independently · Max 10MB per file</div>
+        <div class="drop-sub">Multiple files supported · Each processed independently · Max 10MB per file</div>
       </div>
-      <input type="file" id="fi" accept=".pdf,.png,.jpg,.jpeg"
-             multiple style="display:none" onchange="onSel(event)">
-
-      <!-- File queue -->
+      <input type="file" id="fi" accept=".pdf,.png,.jpg,.jpeg" multiple
+             style="display:none" onchange="onSel(event)">
       <div class="file-queue" id="file-queue">
         <div class="queue-header">
           <span class="queue-title" id="queue-title">0 files selected</span>
           <div class="queue-actions">
-            <button class="btn-sm" onclick="clearQueue()">✕ Clear all</button>
-            <button class="btn-sm btn-primary" id="process-btn"
-                    onclick="processAll()">▶ Process All</button>
+            <button class="btn-sm" onclick="clearQueue()">✕ Clear</button>
+            <button class="btn-sm btn-primary" id="process-btn" onclick="processAll()">▶ Process All</button>
           </div>
         </div>
         <div id="file-list"></div>
-
-        <!-- Summary -->
         <div class="summary-box" id="summary-box">
           <div class="summary-title">Batch Summary</div>
-          <div class="summary-row">
-            <span class="sum-label">Total files</span>
-            <span class="sum-val" id="sum-total">0</span>
-          </div>
-          <div class="summary-row">
-            <span class="sum-label">Sent for approval</span>
-            <span class="sum-val ok" id="sum-ok">0</span>
-          </div>
-          <div class="summary-row">
-            <span class="sum-label">Duplicates detected</span>
-            <span class="sum-val dup" id="sum-dup">0</span>
-          </div>
-          <div class="summary-row">
-            <span class="sum-label">Errors</span>
-            <span class="sum-val err" id="sum-err">0</span>
-          </div>
+          <div class="summary-row"><span class="sum-label">Total files</span><span class="sum-val" id="sum-total">0</span></div>
+          <div class="summary-row"><span class="sum-label">Sent for approval</span><span class="sum-val ok" id="sum-ok">0</span></div>
+          <div class="summary-row"><span class="sum-label">Duplicates</span><span class="sum-val dup" id="sum-dup">0</span></div>
+          <div class="summary-row"><span class="sum-label">Errors</span><span class="sum-val err" id="sum-err">0</span></div>
         </div>
       </div>
-
     </div>
   </div>
 
   <!-- Records -->
   <div class="card">
     <div class="ch">
-      <span class="ct">📋 Invoice Records</span>
+      <span class="ct">📋 Invoice Records — Two-Level Approval</span>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="ftabs">
           <span class="ftab on" onclick="filter('ALL')">All</span>
           <span class="ftab" onclick="filter('PENDING')">Pending</span>
-          <span class="ftab" onclick="filter('APPROVED')">Approved</span>
+          <span class="ftab" onclick="filter('AWAITING_MANAGER2')">Awaiting Mgr 2</span>
+          <span class="ftab" onclick="filter('FULLY_APPROVED')">Approved</span>
           <span class="ftab" onclick="filter('REJECTED')">Rejected</span>
-          <span class="ftab" onclick="filter('DUPLICATE')">Duplicates</span>
         </div>
         <button class="btn" onclick="loadRecs(false)">↻ Refresh</button>
       </div>
@@ -224,14 +198,30 @@ tr:hover td{background:#f8fff8}
       <table>
         <thead>
           <tr>
-            <th>ID</th><th>Vendor</th><th>Invoice No</th><th>Date</th>
-            <th>Amount</th><th>Category</th><th>Submitter</th><th>Status</th><th>Submitted</th>
+            <th>ID</th>
+            <th>Vendor</th>
+            <th>Invoice No</th>
+            <th>Amount</th>
+            <th>Submitter</th>
+            <th>Status</th>
+            <th>Financial Mgr</th>
+            <th>Manager</th>
+            <th>Final</th>
+            <th>Submitted</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="9"><div class="empty"><div class="empty-icon">⏳</div>Loading...</div></td></tr>
+          <tr><td colspan="10"><div class="empty"><div class="empty-icon">⏳</div>Loading...</div></td></tr>
         </tbody>
       </table>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="badge bw">WAITING</span> Not yet sent</span>
+      <span class="legend-item"><span class="badge bp">PENDING</span> Awaiting action</span>
+      <span class="legend-item"><span class="badge bfa">APPROVED</span> This level approved</span>
+      <span class="legend-item"><span class="badge bawm">AWAITING MGR2</span> FM approved, waiting Manager</span>
+      <span class="legend-item"><span class="badge bfull">FULLY APPROVED</span> Both approved ✅</span>
+      <span class="legend-item"><span class="badge brej">REJECTED</span> Rejected</span>
     </div>
     <div style="padding:8px 22px;border-top:1px solid var(--border);font-size:11px;
                 color:var(--muted);display:flex;justify-content:space-between">
@@ -245,32 +235,23 @@ tr:hover td{background:#f8fff8}
 <script>
 const API = () => 'https://web-production-40aa02.up.railway.app';
 let allRecs = [], activeFilter = 'ALL';
+let fileQueue = [], processing = false;
 
-// File queue state
-let fileQueue = []; // {file, id, status, trackId}
-let processing = false;
-
-// Clock
 setInterval(() => {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB');
 }, 1000);
 
-// Toast
 function toast(msg, type, dur=3500) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = type === 'err' ? 'show err' : 'show';
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.className = '', dur);
+  t.textContent = msg; t.className = type==='err'?'show err':'show';
+  clearTimeout(t._t); t._t = setTimeout(()=>t.className='', dur);
 }
 
-// Server status
 function setSrv(on) {
-  document.getElementById('srv-dot').className    = 'dot' + (on ? '' : ' off');
-  document.getElementById('srv-label').textContent = on ? 'Server online' : 'Server offline';
+  document.getElementById('srv-dot').className    = 'dot'+(on?'':' off');
+  document.getElementById('srv-label').textContent = on?'Server online':'Server offline';
 }
 
-// Email
 function onEmail() {
   const v = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('sub-email').value.trim());
   document.getElementById('drop').classList.toggle('disabled', !v);
@@ -278,299 +259,232 @@ function onEmail() {
     ? 'Drop invoices here or click to browse (multiple files supported)'
     : 'Enter your email above, then drop invoices here';
   document.getElementById('sub-email').classList.toggle('err',
-    document.getElementById('sub-email').value.length > 0 && !v);
+    document.getElementById('sub-email').value.length>0 && !v);
 }
 
-// Drag & drop
-function dov(e){ e.preventDefault(); document.getElementById('drop').classList.add('over'); }
-function dlv(){ document.getElementById('drop').classList.remove('over'); }
-function ddp(e){ e.preventDefault(); dlv(); addFiles(Array.from(e.dataTransfer.files)); }
-function onSel(e){ addFiles(Array.from(e.target.files)); e.target.value=''; }
+async function loadRecs(silent=true) {
+  try {
+    const r = await fetch(`${API()}/records`, {signal: AbortSignal.timeout(5000)});
+    allRecs  = await r.json();
+    setSrv(true); renderRecs(); updateStats();
+    document.getElementById('refreshed').textContent = 'Refreshed '+new Date().toLocaleTimeString('en-GB');
+    if (!silent) toast(allRecs.length+' records loaded');
+  } catch {
+    setSrv(false);
+    document.getElementById('tbody').innerHTML =
+      '<tr><td colspan="10"><div class="empty"><div class="empty-icon">🔌</div>'+
+      '<div>Cannot reach server</div></div></td></tr>';
+  }
+}
 
-// Add files to queue
+function updateStats() {
+  const p   = allRecs.filter(r=>r.status==='PENDING').length;
+  const fa  = allRecs.filter(r=>r.status==='FULLY_APPROVED'||r.final_status==='FULLY_APPROVED').length;
+  const rj  = allRecs.filter(r=>r.status==='REJECTED'||r.final_status==='REJECTED').length;
+  const am2 = allRecs.filter(r=>r.status==='AWAITING_MANAGER2').length;
+  document.getElementById('st').textContent   = allRecs.length;
+  document.getElementById('sp').textContent   = p;
+  document.getElementById('sa').textContent   = fa;
+  document.getElementById('sr').textContent   = rj;
+  document.getElementById('sam2').textContent = am2;
+}
+
+function filter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(el =>
+    el.classList.toggle('on', el.textContent.toUpperCase().replace(' ','_')===f ||
+      (f==='ALL'&&el.textContent==='All'))
+  );
+  renderRecs();
+}
+
+function approvalBadge(val) {
+  if (!val || val === '—') return '<span class="badge bw">—</span>';
+  const map = {
+    'PENDING'  : 'badge bp',
+    'WAITING'  : 'badge bw',
+    'APPROVED' : 'badge bfa',
+    'REJECTED' : 'badge brej',
+  };
+  return `<span class="${map[val]||'badge bw'}">${val}</span>`;
+}
+
+function finalBadge(r) {
+  const fs = r.final_status || r.status || 'PENDING';
+  if (fs === 'FULLY_APPROVED') return '<span class="badge bfull">✅ FULLY APPROVED</span>';
+  if (fs === 'REJECTED')       return '<span class="badge brej">❌ REJECTED</span>';
+  if (fs === 'AWAITING_MANAGER2') return '<span class="badge bawm">⏳ AWAITING MGR2</span>';
+  return `<span class="badge bp">${fs}</span>`;
+}
+
+function renderRecs() {
+  let rows = allRecs;
+  if (activeFilter !== 'ALL') {
+    rows = allRecs.filter(r =>
+      r.status === activeFilter ||
+      r.final_status === activeFilter
+    );
+  }
+  rows = [...rows].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  document.getElementById('rec-count').textContent =
+    'Showing '+rows.length+' of '+allRecs.length+' records';
+
+  if (!rows.length) {
+    document.getElementById('tbody').innerHTML =
+      '<tr><td colspan="10"><div class="empty"><div class="empty-icon">📭</div>'+
+      '<div>No invoices found</div></div></td></tr>';
+    return;
+  }
+
+  document.getElementById('tbody').innerHTML = rows.map(r => {
+    const amt = r.total_amount ? r.total_amount+' '+(r.currency||'AED') : '—';
+    const cr  = (r.created_at||'').substring(0,16).replace('T',' ');
+    const a1  = r.approval_1_status || 'PENDING';
+    const a2  = r.approval_2_status || 'WAITING';
+    return '<tr>'+
+      '<td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:11px">'+(r.invoice_id||'—')+'</td>'+
+      '<td style="font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.vendor_name||'—')+'</td>'+
+      '<td>'+(r.invoice_number||'—')+'</td>'+
+      '<td style="font-weight:600">'+amt+'</td>'+
+      '<td style="color:var(--muted);font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis">'+(r.submitter_email||'—')+'</td>'+
+      '<td>'+finalBadge(r)+'</td>'+
+      '<td>'+approvalBadge(a1)+'</td>'+
+      '<td>'+approvalBadge(a2)+'</td>'+
+      '<td>'+finalBadge(r)+'</td>'+
+      '<td style="color:var(--muted);font-size:11px">'+cr+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+// ── File queue ─────────────────────────────────────────────────────────────
 function addFiles(files) {
   const email = document.getElementById('sub-email').value.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     toast('Please enter a valid email first', 'err'); return;
   }
-
-  const valid = files.filter(f => {
-    if (f.size > 10*1024*1024) { toast(`${f.name} too large (max 10MB)`, 'err'); return false; }
-    const ext = f.name.split('.').pop().toLowerCase();
-    if (!['pdf','png','jpg','jpeg'].includes(ext)) {
-      toast(`${f.name} — unsupported format`, 'err'); return false;
-    }
+  files.filter(f => {
+    if (f.size > 10*1024*1024) { toast(f.name+' too large', 'err'); return false; }
     return true;
-  });
-
-  valid.forEach(f => {
-    // Avoid duplicates in queue
-    if (!fileQueue.find(q => q.file.name === f.name && q.file.size === f.size)) {
-      fileQueue.push({
-        file    : f,
-        id      : Math.random().toString(36).slice(2,8).toUpperCase(),
-        status  : 'waiting',
-        trackId : null,
-        result  : null
-      });
+  }).forEach(f => {
+    if (!fileQueue.find(q => q.file.name===f.name && q.file.size===f.size)) {
+      fileQueue.push({file:f, id:Math.random().toString(36).slice(2,8).toUpperCase(),
+                      status:'waiting', trackId:null, result:null});
     }
   });
-
   renderQueue();
 }
 
 function renderQueue() {
   const q = document.getElementById('file-queue');
-  const list = document.getElementById('file-list');
-
-  if (fileQueue.length === 0) {
-    q.classList.remove('show');
-    return;
-  }
+  if (fileQueue.length === 0) { q.classList.remove('show'); return; }
   q.classList.add('show');
-
-  const waiting = fileQueue.filter(f => f.status === 'waiting').length;
+  const waiting = fileQueue.filter(f=>f.status==='waiting').length;
   document.getElementById('queue-title').textContent =
-    `${fileQueue.length} file${fileQueue.length>1?'s':''} — ${waiting} waiting`;
-
+    fileQueue.length+' file'+(fileQueue.length>1?'s':'')+' — '+waiting+' waiting';
   const btn = document.getElementById('process-btn');
-  btn.disabled = processing || waiting === 0;
+  btn.disabled = processing || waiting===0;
   btn.textContent = processing ? '⏳ Processing...' : '▶ Process All';
-
-  list.innerHTML = fileQueue.map(item => {
-    const sz = (item.file.size / 1024).toFixed(0) + ' KB';
-    const statusHtml = {
-      'waiting'  : '<span class="status-wait">⏳ Waiting</span>',
-      'uploading': '<span class="status-proc">⬆ Uploading...</span>',
-      'processing': '<span class="status-proc">⚙ Processing...</span>',
-      'ok'       : '<span class="status-ok">✅ Sent for approval</span>',
-      'duplicate': '<span class="status-dup">⚠️ Duplicate</span>',
-      'error'    : `<span class="status-err">❌ Error</span>`,
-      'rejected' : '<span class="status-err">❌ Rejected</span>',
-    }[item.status] || '';
-
-    const progShow = ['uploading','processing'].includes(item.status) ? 'show' : '';
-    const progPct  = item.status === 'uploading' ? '30%' :
-                     item.status === 'processing' ? '70%' :
-                     ['ok','duplicate','error','rejected'].includes(item.status) ? '100%' : '0%';
-    const progColor= item.status === 'error' || item.status === 'rejected' ? '#dc3545' :
-                     item.status === 'duplicate' ? '#e67e22' : '#e67e22';
-
-    const canRemove = !['uploading','processing'].includes(item.status);
-
+  document.getElementById('file-list').innerHTML = fileQueue.map(item => {
+    const sz = (item.file.size/1024).toFixed(0)+' KB';
+    const sHtml = {
+      waiting   : '<span class="status-wait">⏳ Waiting</span>',
+      uploading : '<span class="status-proc">⬆ Uploading...</span>',
+      processing: '<span class="status-proc">⚙ Processing...</span>',
+      ok        : '<span class="status-ok">✅ Sent for approval</span>',
+      duplicate : '<span class="status-dup">⚠️ Duplicate</span>',
+      error     : '<span class="status-err">❌ Error</span>',
+      rejected  : '<span class="status-err">❌ Rejected</span>',
+    }[item.status]||'';
+    const progShow = ['uploading','processing'].includes(item.status)?'show':'';
+    const canRm = !['uploading','processing'].includes(item.status);
     return `<div class="file-item" id="fi-${item.id}">
       <div class="file-icon">📄</div>
       <div class="file-info">
         <div class="file-name">${item.file.name}</div>
         <div class="file-size">${sz}</div>
         <div class="file-prog ${progShow}" id="fp-${item.id}">
-          <div class="file-prog-fill" id="fpf-${item.id}"
-               style="width:${progPct};background:${progColor}"></div>
+          <div class="file-prog-fill" id="fpf-${item.id}" style="width:50%"></div>
         </div>
       </div>
-      <div class="file-status">${statusHtml}</div>
-      ${canRemove ? `<button class="file-remove" onclick="removeFile('${item.id}')">✕</button>` : ''}
+      <div class="file-status">${sHtml}</div>
+      ${canRm?`<button class="file-remove" onclick="removeFile('${item.id}')">✕</button>`:''}
     </div>`;
   }).join('');
 }
 
 function removeFile(id) {
-  fileQueue = fileQueue.filter(f => f.id !== id);
-  renderQueue();
-  updateSummary();
+  fileQueue = fileQueue.filter(f=>f.id!==id);
+  renderQueue(); updateSummary();
 }
 
 function clearQueue() {
-  fileQueue = fileQueue.filter(f => ['uploading','processing'].includes(f.status));
-  renderQueue();
-  updateSummary();
+  fileQueue = fileQueue.filter(f=>['uploading','processing'].includes(f.status));
+  renderQueue(); updateSummary();
   document.getElementById('summary-box').classList.remove('show');
 }
 
-// Process all waiting files
 async function processAll() {
   if (processing) return;
   const email   = document.getElementById('sub-email').value.trim();
-  const waiting = fileQueue.filter(f => f.status === 'waiting');
-  if (waiting.length === 0) return;
-
-  processing = true;
-  renderQueue();
-
-  // Process up to 3 files in parallel
-  const CONCURRENCY = 3;
+  const waiting = fileQueue.filter(f=>f.status==='waiting');
+  if (!waiting.length) return;
+  processing = true; renderQueue();
 
   async function processItem(item) {
-    item.status = 'uploading';
-    renderQueue();
-
+    item.status = 'uploading'; renderQueue();
     try {
-      // Upload file
       const fd = new FormData();
       fd.append('file', item.file);
       fd.append('submitter_email', email);
-      const res = await fetch(API() + '/upload', {method:'POST', body:fd});
+      const res = await fetch(API()+'/upload', {method:'POST', body:fd});
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      item.trackId = data.tracking_id || data.invoice_id;
-      item.status  = 'processing';
-      renderQueue();
-
-      // Poll for result
+      item.trackId = data.tracking_id||data.invoice_id;
+      item.status  = 'processing'; renderQueue();
       for (let i=0; i<90; i++) {
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r=>setTimeout(r,2000));
         try {
-          const sr   = await fetch(API() + '/status/' + item.trackId);
+          const sr   = await fetch(API()+'/status/'+item.trackId);
           const sdata = await sr.json();
           const ps   = sdata.pipeline_status;
-          if (ps === 'pending_approval') {
-            item.status = 'ok';
-            item.result = sdata;
-            break;
-          }
-          if (ps === 'duplicate_pending_approval') {
-            item.status = 'duplicate';
-            item.result = sdata;
-            break;
-          }
-          if (ps === 'rejected') {
-            item.status = 'rejected';
-            item.result = sdata;
-            break;
-          }
-          if (ps === 'error') {
-            item.status = 'error';
-            item.result = sdata;
-            break;
-          }
-        } catch { /* retry */ }
+          if (ps==='pending_approval')           { item.status='ok';        item.result=sdata; break; }
+          if (ps==='duplicate_pending_approval') { item.status='duplicate'; item.result=sdata; break; }
+          if (ps==='rejected')                   { item.status='rejected';  item.result=sdata; break; }
+          if (ps==='error')                      { item.status='error';     item.result=sdata; break; }
+        } catch {}
       }
-
-      if (['uploading','processing'].includes(item.status)) {
-        item.status = 'error';
-      }
-
-    } catch(e) {
-      item.status = 'error';
-      item.result = {error: e.message};
-    }
-
-    renderQueue();
-    updateSummary();
+      if (['uploading','processing'].includes(item.status)) item.status='error';
+    } catch(e) { item.status='error'; item.result={error:e.message}; }
+    renderQueue(); updateSummary();
   }
 
-  // Process in batches of CONCURRENCY
+  const CONCURRENCY = 3;
   for (let i=0; i<waiting.length; i+=CONCURRENCY) {
-    const batch = waiting.slice(i, i+CONCURRENCY);
-    await Promise.all(batch.map(item => processItem(item)));
+    await Promise.all(waiting.slice(i,i+CONCURRENCY).map(item=>processItem(item)));
   }
-
-  processing = false;
-  renderQueue();
-  loadRecs(true);
-
-  const ok  = fileQueue.filter(f => f.status === 'ok').length;
-  const dup = fileQueue.filter(f => f.status === 'duplicate').length;
-  const err = fileQueue.filter(f => ['error','rejected'].includes(f.status)).length;
-  toast(`Done: ${ok} approved, ${dup} duplicate${dup!==1?'s':''}, ${err} error${err!==1?'s':''}`);
+  processing = false; renderQueue(); loadRecs(true);
+  const ok=fileQueue.filter(f=>f.status==='ok').length;
+  const dup=fileQueue.filter(f=>f.status==='duplicate').length;
+  const err=fileQueue.filter(f=>['error','rejected'].includes(f.status)).length;
+  toast(`Done: ${ok} sent, ${dup} duplicate${dup!==1?'s':''}, ${err} error${err!==1?'s':''}`);
 }
 
 function updateSummary() {
-  const total = fileQueue.length;
-  const ok    = fileQueue.filter(f => f.status === 'ok').length;
-  const dup   = fileQueue.filter(f => f.status === 'duplicate').length;
-  const err   = fileQueue.filter(f => ['error','rejected'].includes(f.status)).length;
-  const done  = ok + dup + err;
-
-  if (done === 0) {
-    document.getElementById('summary-box').classList.remove('show');
-    return;
-  }
-
+  const ok=fileQueue.filter(f=>f.status==='ok').length;
+  const dup=fileQueue.filter(f=>f.status==='duplicate').length;
+  const err=fileQueue.filter(f=>['error','rejected'].includes(f.status)).length;
+  if (ok+dup+err===0) { document.getElementById('summary-box').classList.remove('show'); return; }
   document.getElementById('summary-box').classList.add('show');
-  document.getElementById('sum-total').textContent = total;
+  document.getElementById('sum-total').textContent = fileQueue.length;
   document.getElementById('sum-ok').textContent    = ok;
   document.getElementById('sum-dup').textContent   = dup;
   document.getElementById('sum-err').textContent   = err;
 }
 
-// Records
-async function loadRecs(silent=true) {
-  try {
-    const r = await fetch(`${API()}/records`, {signal: AbortSignal.timeout(5000)});
-    allRecs  = await r.json();
-    setSrv(true);
-    renderRecs(); updateStats();
-    document.getElementById('refreshed').textContent =
-      'Refreshed ' + new Date().toLocaleTimeString('en-GB');
-    if (!silent) toast(allRecs.length + ' records loaded');
-  } catch {
-    setSrv(false);
-    document.getElementById('tbody').innerHTML =
-      '<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔌</div>' +
-      '<div>Cannot reach server at <b>web-production-40aa02.up.railway.app</b></div>' +
-      '</div></td></tr>';
-  }
-}
-
-function updateStats() {
-  const p  = allRecs.filter(r=>r.status==='PENDING').length;
-  const a  = allRecs.filter(r=>r.status==='APPROVED').length;
-  const rj = allRecs.filter(r=>r.status==='REJECTED').length;
-  const ns = allRecs.filter(r=>r.status!=='REJECTED').map(r=>r.invoice_number).filter(Boolean);
-  const dn = new Set(ns.filter((n,i)=>ns.indexOf(n)!==i));
-  document.getElementById('st').textContent = allRecs.length;
-  document.getElementById('sp').textContent = p;
-  document.getElementById('sa').textContent = a;
-  document.getElementById('sr').textContent = rj;
-  document.getElementById('sd').textContent = allRecs.filter(r=>dn.has(r.invoice_number)).length;
-}
-
-function filter(f) {
-  activeFilter = f;
-  document.querySelectorAll('.ftab').forEach(el =>
-    el.classList.toggle('on', el.textContent.toUpperCase()===f || (f==='ALL'&&el.textContent==='All'))
-  );
-  renderRecs();
-}
-
-function renderRecs() {
-  let rows = allRecs;
-  if (activeFilter !== 'ALL' && activeFilter !== 'DUPLICATE') {
-    rows = allRecs.filter(r=>r.status===activeFilter);
-  } else if (activeFilter === 'DUPLICATE') {
-    const ns = allRecs.filter(r=>r.status!=='REJECTED').map(r=>r.invoice_number).filter(Boolean);
-    const dn = new Set(ns.filter((n,i)=>ns.indexOf(n)!==i));
-    rows = allRecs.filter(r=>dn.has(r.invoice_number));
-  }
-  rows = [...rows].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
-  document.getElementById('rec-count').textContent =
-    'Showing ' + rows.length + ' of ' + allRecs.length + ' records';
-  if (!rows.length) {
-    document.getElementById('tbody').innerHTML =
-      '<tr><td colspan="9"><div class="empty"><div class="empty-icon">📭</div>' +
-      '<div>No '+(activeFilter==='ALL'?'':activeFilter.toLowerCase()+' ')+'invoices yet</div>' +
-      '</div></td></tr>';
-    return;
-  }
-  document.getElementById('tbody').innerHTML = rows.map(r => {
-    const s  = r.status||'PENDING';
-    const bc = {PENDING:'bp',APPROVED:'ba',REJECTED:'br'}[s]||'bp';
-    const amt = r.total_amount ? r.total_amount+' '+(r.currency||'AED') : '—';
-    const cr  = (r.created_at||'').substring(0,16).replace('T',' ');
-    return '<tr>'+
-      '<td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:12px">'+(r.invoice_id||'—')+'</td>'+
-      '<td style="font-weight:500">'+(r.vendor_name||'—')+'</td>'+
-      '<td>'+(r.invoice_number||'—')+'</td>'+
-      '<td>'+(r.invoice_date||'—')+'</td>'+
-      '<td style="font-weight:600">'+amt+'</td>'+
-      '<td>'+(r.category||'—')+'</td>'+
-      '<td style="color:var(--muted);font-size:12px">'+(r.submitter_email||'—')+'</td>'+
-      '<td><span class="badge '+bc+'">'+s+'</span></td>'+
-      '<td style="color:var(--muted);font-size:12px">'+cr+'</td>'+
-      '</tr>';
-  }).join('');
-}
+function dov(e){ e.preventDefault(); document.getElementById('drop').classList.add('over'); }
+function dlv(){ document.getElementById('drop').classList.remove('over'); }
+function ddp(e){ e.preventDefault(); dlv(); addFiles(Array.from(e.dataTransfer.files)); }
+function onSel(e){ addFiles(Array.from(e.target.files)); e.target.value=''; }
 
 loadRecs(true);
 setInterval(()=>loadRecs(true), 10000);
