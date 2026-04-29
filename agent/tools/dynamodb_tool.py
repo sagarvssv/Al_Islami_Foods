@@ -39,7 +39,6 @@ def save_invoice(invoice: dict, s3_key: str, invoice_id: str):
         'notes'            : invoice.get('notes', '') or '',
         's3_key'           : s3_key,
         'submitter_email'  : invoice.get('submitter_email', ''),
-        # Two-level approval tracking
         'status'           : 'PENDING',
         'final_status'     : 'PENDING',
         'approval_1_status': 'PENDING',
@@ -49,119 +48,85 @@ def save_invoice(invoice: dict, s3_key: str, invoice_id: str):
         'created_at'       : datetime.utcnow().isoformat(),
         'updated_at'       : datetime.utcnow().isoformat(),
     })
-    print(f"  Saved to DynamoDB: {invoice_id} | status=PENDING | "
-          f"approval_1={os.getenv('APPROVAL_EMAIL','')} | "
-          f"approval_2={os.getenv('MANAGER2_EMAIL','')}")
+    print(f"  Saved: {invoice_id} | mgr1={os.getenv('APPROVAL_EMAIL','')} | mgr2={os.getenv('MANAGER2_EMAIL','')}")
 
 def check_duplicate(invoice: dict) -> dict:
-    """
-    Check duplicate against PENDING + APPROVED + AWAITING_MANAGER2 invoices.
-    REJECTED invoices are completely ignored.
-    Match by:
-      1. invoice_number exact match
-      2. vendor_name + total_amount + invoice_date all three match
-    """
-    table = get_table()
-
+    table      = get_table()
     inv_number = (invoice.get('invoice_number') or '').strip()
     vendor     = (invoice.get('vendor_name') or '').strip().lower()
     amount     = str(invoice.get('total_amount', 0))
     inv_date   = (invoice.get('invoice_date') or '').strip()
 
-    response = table.scan(
-        FilterExpression='#st IN (:pending, :approved, :awm2)',
+    r1 = table.scan(
+        FilterExpression='#st IN (:p, :a, :am2, :fa, :al1)',
         ExpressionAttributeNames={'#st': 'status'},
         ExpressionAttributeValues={
-            ':pending' : 'PENDING',
-            ':approved': 'APPROVED',
-            ':awm2'    : 'AWAITING_MANAGER2'
+            ':p'  : 'PENDING',
+            ':a'  : 'APPROVED',
+            ':am2': 'AWAITING_MANAGER2',
+            ':fa' : 'FULLY_APPROVED',
+            ':al1': 'APPROVED_L1'
         }
     )
-    active_items = response.get('Items', [])
+    r2 = table.scan(
+        FilterExpression='final_status = :fa',
+        ExpressionAttributeValues={':fa': 'FULLY_APPROVED'}
+    )
+    merged = {i['invoice_id']: i for i in r1.get('Items', [])}
+    for item in r2.get('Items', []):
+        merged[item['invoice_id']] = item
+    active_items = list(merged.values())
     print(f"  Checking against {len(active_items)} active records...")
 
     for item in active_items:
-        existing_inv_num = (item.get('invoice_number') or '').strip()
-        existing_vendor  = (item.get('vendor_name') or '').strip().lower()
-        existing_amount  = str(item.get('total_amount', ''))
-        existing_date    = (item.get('invoice_date') or '').strip()
-        existing_status  = item.get('status', '')
-        existing_id      = item.get('invoice_id', '')
+        ei  = (item.get('invoice_number') or '').strip()
+        ev  = (item.get('vendor_name') or '').strip().lower()
+        ea  = str(item.get('total_amount', ''))
+        ed  = (item.get('invoice_date') or '').strip()
+        es  = item.get('final_status') or item.get('status', '')
+        eid = item.get('invoice_id', '')
 
-        # Match 1 — invoice number
-        if inv_number and existing_inv_num and inv_number == existing_inv_num:
-            print(f"  DUPLICATE by invoice_number '{inv_number}' -> {existing_id} [{existing_status}]")
-            return {
-                'is_duplicate'  : True,
-                'matched_id'    : existing_id,
-                'matched_status': existing_status,
-                'match_reason'  : f"Invoice number '{inv_number}' already exists as {existing_id} [{existing_status}]"
-            }
+        if inv_number and ei and inv_number == ei:
+            print(f"  DUPLICATE invoice_number '{inv_number}' -> {eid} [{es}]")
+            return {'is_duplicate': True, 'matched_id': eid, 'matched_status': es,
+                    'match_reason': f"Invoice number '{inv_number}' exists as {eid} [{es}]"}
 
-        # Match 2 — vendor + amount + date
-        if (vendor and existing_vendor == vendor
-                and existing_amount == amount
-                and inv_date and existing_date == inv_date):
-            print(f"  DUPLICATE by vendor+amount+date -> {existing_id} [{existing_status}]")
-            return {
-                'is_duplicate'  : True,
-                'matched_id'    : existing_id,
-                'matched_status': existing_status,
-                'match_reason'  : f"Same vendor '{vendor}', amount {amount}, date {inv_date} as {existing_id} [{existing_status}]"
-            }
+        if vendor and ev == vendor and ea == amount and inv_date and ed == inv_date:
+            print(f"  DUPLICATE vendor+amount+date -> {eid} [{es}]")
+            return {'is_duplicate': True, 'matched_id': eid, 'matched_status': es,
+                    'match_reason': f"Same vendor/amount/date as {eid} [{es}]"}
 
-    print(f"  No duplicate found — invoice is unique")
-    return {
-        'is_duplicate'  : False,
-        'matched_id'    : None,
-        'matched_status': None,
-        'match_reason'  : None
-    }
+    print('  No duplicate found')
+    return {'is_duplicate': False, 'matched_id': None, 'matched_status': None, 'match_reason': None}
 
 def update_invoice_status(invoice_id: str, status: str):
-    """Update the main status field."""
-    table = get_table()
-    table.update_item(
+    get_table().update_item(
         Key={'invoice_id': invoice_id},
         UpdateExpression='SET #st = :status, updated_at = :ts',
         ExpressionAttributeNames={'#st': 'status'},
-        ExpressionAttributeValues={
-            ':status': status.upper(),
-            ':ts'    : datetime.utcnow().isoformat()
-        }
+        ExpressionAttributeValues={':status': status.upper(), ':ts': datetime.utcnow().isoformat()}
     )
     print(f"  DynamoDB: {invoice_id} status -> {status.upper()}")
 
 def update_approval_status(invoice_id: str, level: int, status: str):
-    """Update approval level 1 or 2 status."""
-    table = get_table()
     field = f'approval_{level}_status'
-    table.update_item(
+    get_table().update_item(
         Key={'invoice_id': invoice_id},
         UpdateExpression=f'SET {field} = :status, updated_at = :ts',
-        ExpressionAttributeValues={
-            ':status': status.upper(),
-            ':ts'    : datetime.utcnow().isoformat()
-        }
+        ExpressionAttributeValues={':status': status.upper(), ':ts': datetime.utcnow().isoformat()}
     )
     print(f"  DynamoDB: {invoice_id} approval_{level} -> {status.upper()}")
 
 def update_final_status(invoice_id: str, status: str):
-    """Update both final_status and main status field."""
-    table = get_table()
-    table.update_item(
+    get_table().update_item(
         Key={'invoice_id': invoice_id},
         UpdateExpression='SET final_status = :fs, #st = :st, updated_at = :ts',
         ExpressionAttributeNames={'#st': 'status'},
-        ExpressionAttributeValues={
-            ':fs': status.upper(),
-            ':st': status.upper(),
-            ':ts': datetime.utcnow().isoformat()
-        }
+        ExpressionAttributeValues={':fs': status.upper(), ':st': status.upper(),
+                                   ':ts': datetime.utcnow().isoformat()}
     )
     print(f"  DynamoDB: {invoice_id} final_status -> {status.upper()}")
 
 def get_invoice(invoice_id: str) -> dict:
-    table    = get_table()
-    response = table.get_item(Key={'invoice_id': invoice_id})
-    return response.get('Item', {})
+    return get_session().resource('dynamodb').Table(TABLE)\
+        .get_item(Key={'invoice_id': invoice_id}).get('Item', {})
