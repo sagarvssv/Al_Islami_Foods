@@ -492,6 +492,50 @@ class Handler(BaseHTTPRequestHandler):
                 return self._html_page(invoice_id, 'FULLY_APPROVED', invoice, level=2)
 
         # ── Records ────────────────────────────────────────────────────────
+        elif path == '/reverse':
+            # Reset invoice back to PENDING and resend approval email
+            invoice_id = params.get('invoice_id', [None])[0]
+            if not invoice_id:
+                return self._respond(400, 'Missing invoice_id')
+            invoice = get_invoice(invoice_id)
+            if not invoice:
+                return self._respond(404, f'Invoice {invoice_id} not found')
+            try:
+                from datetime import datetime
+                table = get_aws_session().resource('dynamodb').Table(
+                    os.getenv('DYNAMODB_TABLE', 'al-islami-petty-cash')
+                )
+                table.update_item(
+                    Key={'invoice_id': invoice_id},
+                    UpdateExpression=(
+                        'SET #st = :p, final_status = :p, '
+                        'approval_1_status = :p, approval_2_status = :w, '
+                        'rejection_reason = :e, rejection_notes = :e, '
+                        'updated_at = :ts'
+                    ),
+                    ExpressionAttributeNames={'#st': 'status'},
+                    ExpressionAttributeValues={
+                        ':p' : 'PENDING',
+                        ':w' : 'WAITING',
+                        ':e' : '',
+                        ':ts': datetime.utcnow().isoformat()
+                    }
+                )
+                invoice['status']            = 'PENDING'
+                invoice['approval_1_status'] = 'PENDING'
+                invoice['approval_2_status'] = 'WAITING'
+                print(f"[REVERSE] {invoice_id} reset to PENDING")
+                # Resend Level 1 approval email
+                threading.Thread(
+                    target=send_approval_request_email,
+                    args=(invoice, invoice_id, 1, MANAGER1_EMAIL, False),
+                    daemon=True
+                ).start()
+                self._json(200, {'status': 'reversed', 'invoice_id': invoice_id})
+            except Exception as e:
+                print(f"[REVERSE ERROR] {e}")
+                self._respond(500, str(e))
+
         elif path == '/records':
             try:
                 self._json(200, get_all_records())

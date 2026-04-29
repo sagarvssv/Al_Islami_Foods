@@ -4,506 +4,557 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Al Islami Foods — Petty Cash AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-:root{
-  --g1:#1a472a;--g2:#2d6a4f;--g3:#52b788;--g4:#d8f3dc;
-  --red:#c0392b;--orange:#d35400;
-  --border:#ddd;--white:#fff;--text:#212529;--muted:#6c757d;--light:#f8f9fa;
-}
+:root{--g1:#1a472a;--g2:#2d6a4f;--g3:#52b788;--g4:#d8f3dc;--red:#c0392b;--border:#ddd;--white:#fff;--text:#212529;--muted:#6c757d;--light:#f8f9fa}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2ee;color:var(--text);min-height:100vh}
-nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 32px;height:58px;
-  display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
-.brand{color:#fff;font-size:17px;font-weight:700}.brand span{color:#95e4b3}
-.nav-right{display:flex;align-items:center;gap:14px}
-.dot{width:8px;height:8px;border-radius:50%;background:#95e4b3;display:inline-block}.dot.off{background:#e74c3c}
-.nav-tag{font-size:11px;color:rgba(255,255,255,0.65)}
-.wrap{max-width:1200px;margin:0 auto;padding:24px 18px}
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-.stat{background:var(--white);border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.07);
-  border-top:3px solid var(--g3);cursor:pointer;transition:transform .15s}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2ee;min-height:100vh}
+/* LANDING */
+#landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d2b1a,#1a472a,#2d6a4f)}
+.land-title{font-size:30px;font-weight:800;color:#fff;margin-bottom:4px;text-align:center}
+.land-sub{font-size:14px;color:rgba(255,255,255,.6);margin-bottom:44px;text-align:center}
+.portal-cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+.portal-card{background:rgba(255,255,255,.08);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:32px 36px;width:250px;text-align:center;cursor:pointer;transition:all .25s}
+.portal-card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.3);border-color:rgba(255,255,255,.35)}
+.portal-icon{font-size:42px;margin-bottom:12px}
+.portal-name{font-size:17px;font-weight:700;color:#fff;margin-bottom:5px}
+.portal-desc{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;margin-bottom:14px}
+.portal-btn{padding:8px 20px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid rgba(255,255,255,.4);color:#fff;background:rgba(255,255,255,.1);cursor:pointer}
+/* PAGES */
+.page{display:none;min-height:100vh}.page.active{display:block}
+nav{background:linear-gradient(135deg,var(--g1),var(--g2));padding:0 26px;height:54px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.brand{color:#fff;font-size:15px;font-weight:700}.brand span{color:#95e4b3}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-back{background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 12px;border-radius:14px;font-size:12px;font-weight:600;cursor:pointer}
+.dot{width:7px;height:7px;border-radius:50%;background:#95e4b3;display:inline-block}.dot.off{background:#e74c3c}
+.nav-tag{font-size:11px;color:rgba(255,255,255,.65)}
+.wrap{max-width:1200px;margin:0 auto;padding:20px 16px}
+.card{background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px;overflow:hidden}
+.ch{padding:11px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:13px;font-weight:600;color:var(--g1)}.cb{padding:16px 18px}
+/* STATS */
+.stats{display:grid;gap:10px;margin-bottom:16px}
+.stats-5{grid-template-columns:repeat(5,1fr)}.stats-4{grid-template-columns:repeat(4,1fr)}
+.stat{background:var(--white);border-radius:10px;padding:13px 15px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-top:3px solid var(--g3);cursor:pointer;transition:transform .15s}
 .stat:hover{transform:translateY(-2px)}
-.stat.ora{border-top-color:#e67e22}.stat.red{border-top-color:var(--red)}.stat.pur{border-top-color:#8e44ad}
-.s-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.s-val{font-size:24px;font-weight:700;color:var(--g1)}
-.stat.ora .s-val{color:#e67e22}.stat.red .s-val{color:var(--red)}.stat.pur .s-val{color:#8e44ad}
-.card{background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:18px;overflow:hidden}
-.ch{padding:13px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.ct{font-size:14px;font-weight:600;color:var(--g1)}.cb{padding:20px 22px}
-.email-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
-.email-row label{font-size:13px;font-weight:600;color:var(--g1);white-space:nowrap;min-width:140px;padding-top:9px}
-.email-wrap{flex:1}
-.email-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;transition:border-color .2s}
-.email-input:focus{border-color:var(--g2)}.email-input.err{border-color:var(--red);background:#fff5f5}
-.email-hint{font-size:11px;color:var(--muted);margin-top:4px}
-.drop{border:2px dashed var(--g3);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s}
-.drop:hover,.drop.over{background:var(--g4);border-color:var(--g1)}
-.drop.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
-.drop-icon{font-size:32px;margin-bottom:8px}
-.drop-main{font-size:14px;color:var(--muted);margin-bottom:4px}
-.drop-sub{font-size:11px;color:#aaa}
-/* File queue */
-.file-queue{margin-top:14px;display:none}.file-queue.show{display:block}
-.queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.queue-title{font-size:13px;font-weight:600;color:var(--g1)}
-.queue-actions{display:flex;gap:8px}
-.btn-sm{padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
-  border:1px solid var(--border);background:var(--white);color:var(--muted);transition:all .15s}
-.btn-sm:hover{background:var(--light)}
-.btn-primary{background:var(--g2);color:#fff;border-color:var(--g2)}
-.btn-primary:hover{background:var(--g1)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
-.file-item{display:flex;align-items:center;gap:10px;padding:10px 14px;
-  background:var(--light);border-radius:8px;margin-bottom:8px;border:1px solid var(--border)}
-.file-icon{font-size:20px;flex-shrink:0}
+.stat.ora{border-top-color:#e67e22}.stat.red{border-top-color:var(--red)}.stat.blu{border-top-color:#2980b9}
+.s-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.s-val{font-size:20px;font-weight:700;color:var(--g1)}
+.stat.ora .s-val{color:#e67e22}.stat.red .s-val{color:var(--red)}.stat.blu .s-val{color:#2980b9}
+/* BALANCE */
+.balance-card{background:linear-gradient(135deg,var(--g1),var(--g2));border-radius:14px;padding:22px 26px;color:#fff;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.bal-label{font-size:11px;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.5px}
+.bal-amount{font-size:36px;font-weight:800;margin:3px 0}
+.bal-sub{font-size:11px;color:rgba(255,255,255,.5)}
+.bal-actions{display:flex;gap:8px;flex-wrap:wrap}
+.bal-btn{padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none}
+.bal-add{background:#95e4b3;color:var(--g1)}.bal-remove{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3)}.bal-weekly{background:#ffd700;color:#333}
+/* UPLOAD */
+.email-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.email-row label{font-size:12px;font-weight:600;color:var(--g1);white-space:nowrap;min-width:120px;padding-top:8px}
+.email-input{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none}
+.email-input:focus{border-color:var(--g2)}.email-input.err{border-color:var(--red)}
+.drop{border:2px dashed var(--g3);border-radius:9px;padding:24px;text-align:center;cursor:pointer;transition:all .2s}
+.drop:hover,.drop.over{background:var(--g4);border-color:var(--g1)}.drop.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+.file-queue{margin-top:10px;display:none}.file-queue.show{display:block}
+.queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.queue-title{font-size:12px;font-weight:600;color:var(--g1)}
+.queue-actions{display:flex;gap:6px}
+.btn-sm{padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--muted)}
+.btn-primary{background:var(--g2);color:#fff;border-color:var(--g2)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.file-item{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--light);border-radius:7px;margin-bottom:5px;border:1px solid var(--border)}
 .file-info{flex:1;min-width:0}
-.file-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file-size{font-size:11px;color:var(--muted)}
-.file-status{flex-shrink:0;min-width:140px;text-align:right}
-.status-wait{font-size:12px;color:var(--muted)}
-.status-proc{font-size:12px;color:#e67e22;font-weight:600}
-.status-ok{font-size:12px;color:var(--g1);font-weight:600}
-.status-dup{font-size:12px;color:#e65100;font-weight:600}
-.status-err{font-size:12px;color:var(--red);font-weight:600}
-.file-prog{height:3px;background:var(--border);border-radius:2px;margin-top:5px;display:none}
-.file-prog.show{display:block}
-.file-prog-fill{height:3px;background:#e67e22;border-radius:2px;transition:width .5s}
-.file-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 6px}
-.file-remove:hover{color:var(--red)}
-.summary-box{margin-top:14px;padding:14px 18px;background:var(--g4);border:1px solid var(--g3);border-radius:8px;display:none}
+.file-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-size{font-size:10px;color:var(--muted)}
+.file-status{flex-shrink:0;min-width:120px;text-align:right;font-size:11px}
+.status-wait{color:var(--muted)}.status-proc{color:#e67e22;font-weight:600}
+.status-ok{color:var(--g1);font-weight:600}.status-dup{color:#e65100;font-weight:600}.status-err{color:var(--red);font-weight:600}
+.summary-box{margin-top:10px;padding:10px 14px;background:var(--g4);border:1px solid var(--g3);border-radius:7px;display:none}
 .summary-box.show{display:block}
-.summary-title{font-size:13px;font-weight:700;color:var(--g1);margin-bottom:8px}
-.summary-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
-.sum-label{color:var(--muted)}.sum-val{font-weight:600}
-.sum-val.ok{color:var(--g1)}.sum-val.dup{color:#e65100}.sum-val.err{color:var(--red)}
-/* Table */
+/* TABLE */
 .tbl-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{background:var(--g1);color:#fff;padding:9px 10px;text-align:left;font-size:10px;
-  font-weight:600;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
-td{padding:9px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:var(--g1);color:#fff;padding:8px 9px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:8px 9px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
 tr:hover td{background:#f8fff8}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;white-space:nowrap}
-.bp{background:#fff3cd;color:#856404}.ba{background:#d4edda;color:#155724}
-.br{background:#fde;color:var(--red)}.bw{background:#e9ecef;color:#495057}
-.bfa{background:#d1ecf1;color:#0c5460}.brej{background:#fde;color:var(--red)}
-.bfull{background:#d4edda;color:#155724;font-weight:800}
-.bawm{background:#fff3cd;color:#856404}
-.ftabs{display:flex;gap:6px;flex-wrap:wrap}
-.ftab{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;
-  border:1px solid var(--border);background:var(--white);color:var(--muted);transition:all .15s}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.bp{background:#fff3cd;color:#856404}.ba{background:#d4edda;color:#155724}.br{background:#fde;color:var(--red)}.bw{background:#e9ecef;color:#495057}.bfa{background:#d1ecf1;color:#0c5460}.bfull{background:#d4edda;color:#155724;font-weight:800}.bawm{background:#fff3cd;color:#856404}
+.ftabs{display:flex;gap:5px;flex-wrap:wrap}
+.ftab{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--muted)}
 .ftab.on{background:var(--g1);color:#fff;border-color:var(--g1)}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;border-radius:6px;
-  font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);
-  background:var(--white);color:var(--muted);transition:all .15s}
-.btn:hover{background:var(--light)}
-.empty{text-align:center;padding:36px;color:var(--muted)}
-.empty-icon{font-size:32px;margin-bottom:8px}
-/* Approval legend */
-.legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 22px;
-  border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
-.legend-item{display:flex;align-items:center;gap:4px}
-#toast{position:fixed;bottom:22px;right:22px;background:var(--g1);color:#fff;
-  padding:11px 18px;border-radius:8px;font-size:13px;font-weight:500;
-  box-shadow:0 4px 12px rgba(0,0,0,0.18);transform:translateY(80px);
-  opacity:0;transition:all .3s;z-index:999}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--muted)}
+.btn:hover{background:var(--light)}.btn-danger{background:#fff5f5;color:var(--red);border-color:#fbb}
+.empty{text-align:center;padding:28px;color:var(--muted)}
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:14px;padding:32px 36px;max-width:340px;width:92%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal h2{font-size:18px;font-weight:700;color:var(--g1);margin-bottom:5px}
+.modal p{font-size:12px;color:var(--muted);margin-bottom:16px}
+.pwd-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;letter-spacing:4px;outline:none;text-align:center;margin-bottom:8px}
+.pwd-input:focus{border-color:var(--g2)}.pwd-input.err{border-color:var(--red);animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.pwd-err{color:var(--red);font-size:11px;margin-bottom:8px;display:none}
+.pwd-btn{width:100%;padding:11px;background:var(--g2);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer}
+.pwd-btn:hover{background:var(--g1)}
+.amt-modal{background:#fff;border-radius:14px;padding:24px 28px;max-width:300px;width:92%;text-align:center}
+.amt-modal h3{font-size:16px;font-weight:700;color:var(--g1);margin-bottom:5px}
+.amt-modal p{font-size:12px;color:var(--muted);margin-bottom:12px}
+.amt-input{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-size:16px;font-weight:700;outline:none;text-align:center;margin-bottom:12px}
+.amt-input:focus{border-color:var(--g2)}
+.amt-actions{display:flex;gap:8px}
+.amt-confirm{flex:1;padding:10px;background:var(--g2);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer}
+.amt-confirm:hover{background:var(--g1)}
+.amt-cancel{padding:10px 14px;background:var(--light);color:var(--muted);border:1px solid var(--border);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer}
+/* ANALYTICS */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart-card{background:var(--white);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px 18px}
+.chart-title{font-size:12px;font-weight:600;color:var(--g1);margin-bottom:12px}
+.analytics-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.month-select{padding:5px 9px;border:1px solid var(--border);border-radius:5px;font-size:12px;outline:none}
+.month-select:focus{border-color:var(--g2)}
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--g1);color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.18);transform:translateY(70px);opacity:0;transition:all .3s;z-index:9999}
 #toast.show{transform:translateY(0);opacity:1}#toast.err{background:var(--red)}
-@media(max-width:640px){
-  .stats{grid-template-columns:repeat(3,1fr)}
-  .email-row{flex-direction:column}.wrap{padding:14px 10px}
+@media(max-width:700px){
+  .portal-cards{flex-direction:column;align-items:center}.stats-5,.stats-4{grid-template-columns:repeat(2,1fr)}
+  .analytics-grid{grid-template-columns:1fr}.analytics-summary{grid-template-columns:repeat(2,1fr)}
+  .balance-card{flex-direction:column}.wrap{padding:12px 10px}
 }
 </style>
 </head>
 <body>
 
-<nav>
-  <div class="brand">🌿 Al Islami Foods <span>Petty Cash AI</span></div>
-  <div class="nav-right">
-    <span class="dot" id="srv-dot"></span>
-    <span class="nav-tag" id="srv-label">Connecting...</span>
-    <span class="nav-tag" id="clock"></span>
-  </div>
-</nav>
-
-<div class="wrap">
-
-  <!-- Stats -->
-  <div class="stats">
-    <div class="stat"     onclick="filter('ALL')"><div class="s-label">Total</div><div class="s-val" id="st">—</div></div>
-    <div class="stat ora" onclick="filter('PENDING')"><div class="s-label">Pending</div><div class="s-val" id="sp">—</div></div>
-    <div class="stat"     onclick="filter('FULLY_APPROVED')"><div class="s-label">Fully Approved</div><div class="s-val" id="sa">—</div></div>
-    <div class="stat red" onclick="filter('REJECTED')"><div class="s-label">Rejected</div><div class="s-val" id="sr">—</div></div>
-    <div class="stat pur" onclick="filter('AWAITING_MANAGER2')"><div class="s-label">Awaiting Mgr 2</div><div class="s-val" id="sam2">—</div></div>
-  </div>
-
-  <!-- Upload -->
-  <div class="card">
-    <div class="ch">
-      <span class="ct">📤 Upload Invoices</span>
-      <span style="font-size:11px;color:var(--muted)">PDF · JPG · PNG · Up to 10 files</span>
+<!-- LANDING -->
+<div id="landing">
+  <div style="font-size:50px;margin-bottom:6px">🌿</div>
+  <div class="land-title">Al Islami Foods</div>
+  <div class="land-sub">Petty Cash AI — Powered by AWS Bedrock AgentCore</div>
+  <div class="portal-cards">
+    <div class="portal-card" onclick="openUser()">
+      <div class="portal-icon">📤</div>
+      <div class="portal-name">User Portal</div>
+      <div class="portal-desc">Submit invoices for approval and track your submissions.</div>
+      <button class="portal-btn">Enter →</button>
     </div>
-    <div class="cb">
-      <div class="email-row">
-        <label for="sub-email">📧 Your email</label>
-        <div class="email-wrap">
-          <input type="email" id="sub-email" class="email-input"
-                 placeholder="yourname@company.com" oninput="onEmail()">
-          <div class="email-hint">You'll receive a notification after both managers approve or reject.</div>
-        </div>
-      </div>
-      <div class="drop disabled" id="drop"
-           onclick="document.getElementById('fi').click()"
-           ondragover="dov(event)" ondragleave="dlv()" ondrop="ddp(event)">
-        <div class="drop-icon">📁</div>
-        <div class="drop-main" id="drop-main">Enter your email above, then drop invoices here</div>
-        <div class="drop-sub">Multiple files supported · Each processed independently · Max 10MB per file</div>
-      </div>
-      <input type="file" id="fi" accept=".pdf,.png,.jpg,.jpeg" multiple
-             style="display:none" onchange="onSel(event)">
-      <div class="file-queue" id="file-queue">
-        <div class="queue-header">
-          <span class="queue-title" id="queue-title">0 files selected</span>
-          <div class="queue-actions">
-            <button class="btn-sm" onclick="clearQueue()">✕ Clear</button>
-            <button class="btn-sm btn-primary" id="process-btn" onclick="processAll()">▶ Process All</button>
+    <div class="portal-card" onclick="openManagerLogin()">
+      <div class="portal-icon">🔐</div>
+      <div class="portal-name">Manager Portal</div>
+      <div class="portal-desc">Manage budget, view analytics and oversee all invoices.</div>
+      <button class="portal-btn">Enter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-overlay" id="pwd-modal">
+  <div class="modal">
+    <div style="font-size:40px;margin-bottom:10px">🔒</div>
+    <h2>Manager Portal</h2>
+    <p>Enter the manager password to continue</p>
+    <input type="password" class="pwd-input" id="pwd-input" placeholder="••••••••••"
+           onkeydown="if(event.key==='Enter')checkPwd()">
+    <div class="pwd-err" id="pwd-err">Incorrect password. Please try again.</div>
+    <button class="pwd-btn" onclick="checkPwd()">Unlock →</button>
+  </div>
+</div>
+
+<!-- AMOUNT MODAL -->
+<div class="modal-overlay" id="amt-modal-overlay">
+  <div class="amt-modal">
+    <h3 id="amt-title">Add Cash</h3>
+    <p id="amt-desc">Enter amount in AED</p>
+    <input type="number" class="amt-input" id="amt-input" placeholder="0.00" min="0">
+    <div class="amt-actions">
+      <button class="amt-cancel" onclick="closeAmtModal()">Cancel</button>
+      <button class="amt-confirm" onclick="confirmAmount()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER PORTAL -->
+<div class="page" id="user-page">
+  <nav>
+    <div class="brand">🌿 Al Islami Foods <span>User Portal</span></div>
+    <div class="nav-right">
+      <span class="dot" id="u-dot"></span>
+      <span class="nav-tag" id="u-srv">Connecting...</span>
+      <span class="nav-tag" id="u-clk"></span>
+      <button class="nav-back" onclick="goLanding()">← Home</button>
+    </div>
+  </nav>
+  <div class="wrap">
+    <div class="stats stats-5">
+      <div class="stat" onclick="uFilter('ALL')"><div class="s-label">Total</div><div class="s-val" id="u-st">—</div></div>
+      <div class="stat ora" onclick="uFilter('PENDING')"><div class="s-label">Pending</div><div class="s-val" id="u-sp">—</div></div>
+      <div class="stat" style="border-top-color:#e67e22" onclick="uFilter('AWAITING_MANAGER2')"><div class="s-label">Awaiting Mgr2</div><div class="s-val" id="u-am2" style="color:#e67e22">—</div></div>
+      <div class="stat" onclick="uFilter('FULLY_APPROVED')"><div class="s-label">Approved</div><div class="s-val" id="u-sa">—</div></div>
+      <div class="stat red" onclick="uFilter('REJECTED')"><div class="s-label">Rejected</div><div class="s-val" id="u-sr">—</div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">📤 Upload Invoices</span><span style="font-size:10px;color:var(--muted)">PDF · JPG · PNG · Up to 10 files</span></div>
+      <div class="cb">
+        <div class="email-row">
+          <label>📧 Your email</label>
+          <div style="flex:1">
+            <input type="email" id="sub-email" class="email-input" placeholder="yourname@company.com" oninput="onEmail()">
+            <div style="font-size:10px;color:var(--muted);margin-top:3px">You'll be notified after both managers decide.</div>
           </div>
         </div>
-        <div id="file-list"></div>
-        <div class="summary-box" id="summary-box">
-          <div class="summary-title">Batch Summary</div>
-          <div class="summary-row"><span class="sum-label">Total files</span><span class="sum-val" id="sum-total">0</span></div>
-          <div class="summary-row"><span class="sum-label">Sent for approval</span><span class="sum-val ok" id="sum-ok">0</span></div>
-          <div class="summary-row"><span class="sum-label">Duplicates</span><span class="sum-val dup" id="sum-dup">0</span></div>
-          <div class="summary-row"><span class="sum-label">Errors</span><span class="sum-val err" id="sum-err">0</span></div>
+        <div class="drop disabled" id="drop" onclick="document.getElementById('fi').click()" ondragover="dov(event)" ondragleave="dlv()" ondrop="ddp(event)">
+          <div style="font-size:26px;margin-bottom:5px">📁</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:3px" id="drop-main">Enter email above, then drop invoices here</div>
+          <div style="font-size:10px;color:#aaa">Multiple files · Max 10MB each</div>
+        </div>
+        <input type="file" id="fi" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none" onchange="onSel(event)">
+        <div class="file-queue" id="file-queue">
+          <div class="queue-header">
+            <span class="queue-title" id="queue-title">0 files</span>
+            <div class="queue-actions">
+              <button class="btn-sm" onclick="clearQueue()">✕ Clear</button>
+              <button class="btn-sm btn-primary" id="process-btn" onclick="processAll()">▶ Process All</button>
+            </div>
+          </div>
+          <div id="file-list"></div>
+          <div class="summary-box" id="summary-box">
+            <div style="font-size:12px;font-weight:600;color:var(--g1);margin-bottom:5px">Batch Summary</div>
+            <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
+              <span>Total: <b id="sum-total">0</b></span>
+              <span style="color:var(--g1)">✅ Sent: <b id="sum-ok">0</b></span>
+              <span style="color:#e65100">⚠️ Duplicates: <b id="sum-dup">0</b></span>
+              <span style="color:var(--red)">❌ Errors: <b id="sum-err">0</b></span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Records -->
-  <div class="card">
-    <div class="ch">
-      <span class="ct">📋 Invoice Records — Two-Level Approval</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="ftabs">
-          <span class="ftab on" onclick="filter('ALL')">All</span>
-          <span class="ftab" onclick="filter('PENDING')">Pending</span>
-          <span class="ftab" onclick="filter('AWAITING_MANAGER2')">Awaiting Mgr 2</span>
-          <span class="ftab" onclick="filter('FULLY_APPROVED')">Approved</span>
-          <span class="ftab" onclick="filter('REJECTED')">Rejected</span>
+    <div class="card">
+      <div class="ch">
+        <span class="ct">📋 My Submissions</span>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="ftabs">
+            <span class="ftab on" onclick="uFilter('ALL')">All</span>
+            <span class="ftab" onclick="uFilter('PENDING')">Pending</span>
+            <span class="ftab" onclick="uFilter('AWAITING_MANAGER2')">Awaiting Mgr 2</span>
+            <span class="ftab" onclick="uFilter('FULLY_APPROVED')">Approved</span>
+            <span class="ftab" onclick="uFilter('REJECTED')">Rejected</span>
+          </div>
+          <button class="btn" onclick="loadRecs()">↻</button>
         </div>
-        <button class="btn" onclick="loadRecs(false)">↻ Refresh</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th></tr></thead>
+          <tbody id="u-tbody"><tr><td colspan="9"><div class="empty">⏳ Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+      <div style="padding:6px 18px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between">
+        <span id="u-cnt"></span><span id="u-ref"></span>
       </div>
     </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Vendor</th>
-            <th>Invoice No</th>
-            <th>Amount</th>
-            <th>Submitter</th>
-            <th>Status</th>
-            <th>Financial Mgr</th>
-            <th>Manager</th>
-            <th>Rejection Reason</th>
-            <th>Submitted</th>
-          </tr>
-        </thead>
-        <tbody id="tbody">
-          <tr><td colspan="10"><div class="empty"><div class="empty-icon">⏳</div>Loading...</div></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="legend">
-      <span class="legend-item"><span class="badge bw">WAITING</span> Not yet sent</span>
-      <span class="legend-item"><span class="badge bp">PENDING</span> Awaiting action</span>
-      <span class="legend-item"><span class="badge bfa">APPROVED</span> This level approved</span>
-      <span class="legend-item"><span class="badge bawm">AWAITING MGR2</span> FM approved, waiting Manager</span>
-      <span class="legend-item"><span class="badge bfull">FULLY APPROVED</span> Both approved ✅</span>
-      <span class="legend-item"><span class="badge brej">REJECTED</span> Rejected</span>
-    </div>
-    <div style="padding:8px 22px;border-top:1px solid var(--border);font-size:11px;
-                color:var(--muted);display:flex;justify-content:space-between">
-      <span id="rec-count"></span><span id="refreshed"></span>
-    </div>
   </div>
-
 </div>
-<div id="toast"></div>
 
-<script>
-const API = () => 'https://web-production-40aa02.up.railway.app';
-let allRecs = [], activeFilter = 'ALL';
-let fileQueue = [], processing = false;
-
-setInterval(() => {
-  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB');
-}, 1000);
-
-function toast(msg, type, dur=3500) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = type==='err'?'show err':'show';
-  clearTimeout(t._t); t._t = setTimeout(()=>t.className='', dur);
-}
-
-function setSrv(on) {
-  document.getElementById('srv-dot').className    = 'dot'+(on?'':' off');
-  document.getElementById('srv-label').textContent = on?'Server online':'Server offline';
-}
-
-function onEmail() {
-  const v = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('sub-email').value.trim());
-  document.getElementById('drop').classList.toggle('disabled', !v);
-  document.getElementById('drop-main').textContent = v
-    ? 'Drop invoices here or click to browse (multiple files supported)'
-    : 'Enter your email above, then drop invoices here';
-  document.getElementById('sub-email').classList.toggle('err',
-    document.getElementById('sub-email').value.length>0 && !v);
-}
-
-async function loadRecs(silent=true) {
-  try {
-    const r = await fetch(`${API()}/records`, {signal: AbortSignal.timeout(5000)});
-    allRecs  = await r.json();
-    setSrv(true); renderRecs(); updateStats();
-    document.getElementById('refreshed').textContent = 'Refreshed '+new Date().toLocaleTimeString('en-GB');
-    if (!silent) toast(allRecs.length+' records loaded');
-  } catch {
-    setSrv(false);
-    document.getElementById('tbody').innerHTML =
-      '<tr><td colspan="10"><div class="empty"><div class="empty-icon">🔌</div>'+
-      '<div>Cannot reach server</div></div></td></tr>';
-  }
-}
-
-function updateStats() {
-  const p   = allRecs.filter(r=>r.status==='PENDING').length;
-  const fa  = allRecs.filter(r=>r.status==='FULLY_APPROVED'||r.final_status==='FULLY_APPROVED').length;
-  const rj  = allRecs.filter(r=>r.status==='REJECTED'||r.final_status==='REJECTED').length;
-  const am2 = allRecs.filter(r=>r.status==='AWAITING_MANAGER2').length;
-  document.getElementById('st').textContent   = allRecs.length;
-  document.getElementById('sp').textContent   = p;
-  document.getElementById('sa').textContent   = fa;
-  document.getElementById('sr').textContent   = rj;
-  document.getElementById('sam2').textContent = am2;
-}
-
-function filter(f) {
-  activeFilter = f;
-  document.querySelectorAll('.ftab').forEach(el =>
-    el.classList.toggle('on', el.textContent.toUpperCase().replace(' ','_')===f ||
-      (f==='ALL'&&el.textContent==='All'))
-  );
-  renderRecs();
-}
-
-function approvalBadge(val) {
-  if (!val || val === '—') return '<span class="badge bw">—</span>';
-  const map = {
-    'PENDING'  : 'badge bp',
-    'WAITING'  : 'badge bw',
-    'APPROVED' : 'badge bfa',
-    'REJECTED' : 'badge brej',
-  };
-  return `<span class="${map[val]||'badge bw'}">${val}</span>`;
-}
-
-function finalBadge(r) {
-  const fs = r.final_status || r.status || 'PENDING';
-  if (fs === 'FULLY_APPROVED') return '<span class="badge bfull">✅ FULLY APPROVED</span>';
-  if (fs === 'REJECTED')       return '<span class="badge brej">❌ REJECTED</span>';
-  if (fs === 'AWAITING_MANAGER2') return '<span class="badge bawm">⏳ AWAITING MGR2</span>';
-  return `<span class="badge bp">${fs}</span>`;
-}
-
-function rejectionCell(r) {
-  if (!r.rejection_reason) return '—';
-  const labels = {
-    duplicate      : '🔁 Duplicate',
-    missing_info   : '📋 Missing Info',
-    over_budget    : '💰 Over Budget',
-    not_approved   : '🚫 Not Approved',
-    wrong_category : '🏷️ Wrong Category',
-    policy         : '📜 Policy',
-    other          : '✍️ Other',
-  };
-  const label = labels[r.rejection_reason] || r.rejection_reason;
-  const notes = r.rejection_notes ? '<br><span style="color:#495057">' + r.rejection_notes + '</span>' : '';
-  return '<span style="color:#dc3545;font-weight:600">' + label + '</span>' + notes;
-}
-
-function renderRecs() {
-  let rows = allRecs;
-  if (activeFilter !== 'ALL') {
-    rows = allRecs.filter(r =>
-      r.status === activeFilter ||
-      r.final_status === activeFilter
-    );
-  }
-  rows = [...rows].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
-  document.getElementById('rec-count').textContent =
-    'Showing '+rows.length+' of '+allRecs.length+' records';
-
-  if (!rows.length) {
-    document.getElementById('tbody').innerHTML =
-      '<tr><td colspan="10"><div class="empty"><div class="empty-icon">📭</div>'+
-      '<div>No invoices found</div></div></td></tr>';
-    return;
-  }
-
-  document.getElementById('tbody').innerHTML = rows.map(r => {
-    const amt = r.total_amount ? r.total_amount+' '+(r.currency||'AED') : '—';
-    const cr  = (r.created_at||'').substring(0,16).replace('T',' ');
-    const a1  = r.approval_1_status || 'PENDING';
-    const a2  = r.approval_2_status || 'WAITING';
-    return '<tr>'+
-      '<td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:11px">'+(r.invoice_id||'—')+'</td>'+
-      '<td style="font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.vendor_name||'—')+'</td>'+
-      '<td>'+(r.invoice_number||'—')+'</td>'+
-      '<td style="font-weight:600">'+amt+'</td>'+
-      '<td style="color:var(--muted);font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis">'+(r.submitter_email||'—')+'</td>'+
-      '<td>'+finalBadge(r)+'</td>'+
-      '<td>'+approvalBadge(a1)+'</td>'+
-      '<td>'+approvalBadge(a2)+'</td>'+
-      '<td style="font-size:11px;color:var(--muted)">'+rejectionCell(r)+'</td>'+
-      '<td style="color:var(--muted);font-size:11px">'+cr+'</td>'+
-      '</tr>';
-  }).join('');
-}
-
-// ── File queue ─────────────────────────────────────────────────────────────
-function addFiles(files) {
-  const email = document.getElementById('sub-email').value.trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    toast('Please enter a valid email first', 'err'); return;
-  }
-  files.filter(f => {
-    if (f.size > 10*1024*1024) { toast(f.name+' too large', 'err'); return false; }
-    return true;
-  }).forEach(f => {
-    if (!fileQueue.find(q => q.file.name===f.name && q.file.size===f.size)) {
-      fileQueue.push({file:f, id:Math.random().toString(36).slice(2,8).toUpperCase(),
-                      status:'waiting', trackId:null, result:null});
-    }
-  });
-  renderQueue();
-}
-
-function renderQueue() {
-  const q = document.getElementById('file-queue');
-  if (fileQueue.length === 0) { q.classList.remove('show'); return; }
-  q.classList.add('show');
-  const waiting = fileQueue.filter(f=>f.status==='waiting').length;
-  document.getElementById('queue-title').textContent =
-    fileQueue.length+' file'+(fileQueue.length>1?'s':'')+' — '+waiting+' waiting';
-  const btn = document.getElementById('process-btn');
-  btn.disabled = processing || waiting===0;
-  btn.textContent = processing ? '⏳ Processing...' : '▶ Process All';
-  document.getElementById('file-list').innerHTML = fileQueue.map(item => {
-    const sz = (item.file.size/1024).toFixed(0)+' KB';
-    const sHtml = {
-      waiting   : '<span class="status-wait">⏳ Waiting</span>',
-      uploading : '<span class="status-proc">⬆ Uploading...</span>',
-      processing: '<span class="status-proc">⚙ Processing...</span>',
-      ok        : '<span class="status-ok">✅ Sent for approval</span>',
-      duplicate : '<span class="status-dup">⚠️ Duplicate</span>',
-      error     : '<span class="status-err">❌ Error</span>',
-      rejected  : '<span class="status-err">❌ Rejected</span>',
-    }[item.status]||'';
-    const progShow = ['uploading','processing'].includes(item.status)?'show':'';
-    const canRm = !['uploading','processing'].includes(item.status);
-    return `<div class="file-item" id="fi-${item.id}">
-      <div class="file-icon">📄</div>
-      <div class="file-info">
-        <div class="file-name">${item.file.name}</div>
-        <div class="file-size">${sz}</div>
-        <div class="file-prog ${progShow}" id="fp-${item.id}">
-          <div class="file-prog-fill" id="fpf-${item.id}" style="width:50%"></div>
+<!-- MANAGER PORTAL -->
+<div class="page" id="mgr-page">
+  <nav>
+    <div class="brand">🌿 Al Islami Foods <span>Manager Portal</span></div>
+    <div class="nav-right">
+      <span class="dot" id="m-dot"></span>
+      <span class="nav-tag" id="m-srv">Connecting...</span>
+      <span class="nav-tag" id="m-clk"></span>
+      <button class="nav-back" onclick="goLanding()">← Home</button>
+    </div>
+  </nav>
+  <div class="wrap">
+    <!-- Balance -->
+    <div class="balance-card">
+      <div>
+        <div class="bal-label">💰 Petty Cash Balance</div>
+        <div class="bal-amount" id="bal-amount">AED 5,000.00</div>
+        <div class="bal-sub" id="bal-sub">Available this period</div>
+      </div>
+      <div class="bal-actions">
+        <button class="bal-btn bal-add" onclick="openAmtModal('add')">+ Add Cash</button>
+        <button class="bal-btn bal-remove" onclick="openAmtModal('remove')">− Remove Cash</button>
+        <button class="bal-btn bal-weekly" onclick="openAmtModal('weekly')">🔄 Weekly Top-up</button>
+      </div>
+    </div>
+    <!-- Stats -->
+    <div class="stats stats-4">
+      <div class="stat" onclick="mFilter('ALL')"><div class="s-label">Total</div><div class="s-val" id="m-st">—</div></div>
+      <div class="stat ora" onclick="mFilter('PENDING')"><div class="s-label">Pending</div><div class="s-val" id="m-sp">—</div></div>
+      <div class="stat" onclick="mFilter('FULLY_APPROVED')"><div class="s-label">Fully Approved</div><div class="s-val" id="m-sa">—</div></div>
+      <div class="stat red" onclick="mFilter('REJECTED')"><div class="s-label">Rejected</div><div class="s-val" id="m-sr">—</div></div>
+    </div>
+    <!-- Analytics -->
+    <div class="card">
+      <div class="ch">
+        <span class="ct">📊 Monthly Analysis</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="month-select" id="month-select" onchange="renderAnalytics()"></select>
+          <button class="btn" onclick="renderAnalytics()">↻</button>
         </div>
       </div>
-      <div class="file-status">${sHtml}</div>
-      ${canRm?`<button class="file-remove" onclick="removeFile('${item.id}')">✕</button>`:''}
-    </div>`;
+      <div class="cb">
+        <div class="analytics-summary">
+          <div class="stat"><div class="s-label">Submitted</div><div class="s-val" id="an-sub">—</div></div>
+          <div class="stat"><div class="s-label">Approved</div><div class="s-val" id="an-app" style="color:var(--g1)">—</div></div>
+          <div class="stat red"><div class="s-label">Rejected</div><div class="s-val" id="an-rej">—</div></div>
+          <div class="stat blu"><div class="s-label">AED Spent</div><div class="s-val" id="an-spent" style="color:#2980b9;font-size:15px">—</div></div>
+        </div>
+        <div class="analytics-grid">
+          <div class="chart-card"><div class="chart-title">Invoice Status Distribution</div><canvas id="status-chart" height="200"></canvas></div>
+          <div class="chart-card"><div class="chart-title">Amount by Category (AED)</div><canvas id="cat-chart" height="200"></canvas></div>
+          <div class="chart-card" style="grid-column:span 2"><div class="chart-title">Daily Invoice Activity</div><canvas id="daily-chart" height="120"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <!-- All Invoices -->
+    <div class="card">
+      <div class="ch">
+        <span class="ct">📋 All Invoices — Manager View</span>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="ftabs">
+            <span class="ftab on" onclick="mFilter('ALL')">All</span>
+            <span class="ftab" onclick="mFilter('PENDING')">Pending</span>
+            <span class="ftab" onclick="mFilter('AWAITING_MANAGER2')">Awaiting Mgr 2</span>
+            <span class="ftab" onclick="mFilter('FULLY_APPROVED')">Approved</span>
+            <span class="ftab" onclick="mFilter('REJECTED')">Rejected</span>
+          </div>
+          <button class="btn" onclick="loadRecs()">↻</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Submitter</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th><th>Action</th></tr></thead>
+          <tbody id="m-tbody"><tr><td colspan="11"><div class="empty">⏳ Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+      <div style="padding:6px 18px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between">
+        <span id="m-cnt"></span><span id="m-ref"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+const API=()=>'https://web-production-40aa02.up.railway.app';
+const MGR_PWD='Alislami@2026';
+let allRecs=[],uFV='ALL',mFV='ALL',fileQueue=[],processing=false;
+let cash=parseFloat(localStorage.getItem('pettyCash')||'5000');
+let weeklyAmt=parseFloat(localStorage.getItem('weeklyTopup')||'0');
+let amtMode='add';
+let sCh=null,cCh=null,dCh=null;
+
+setInterval(()=>{const t=new Date().toLocaleTimeString('en-GB');['u-clk','m-clk'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=t})},1000);
+
+function toast(msg,type,dur=3200){const t=document.getElementById('toast');t.textContent=msg;t.className=type==='err'?'show err':'show';clearTimeout(t._t);t._t=setTimeout(()=>t.className='',dur)}
+function setSrv(on){['u-dot','m-dot'].forEach(id=>{const e=document.getElementById(id);if(e)e.className='dot'+(on?'':' off')});['u-srv','m-srv'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=on?'Server online':'Server offline'})}
+function goLanding(){document.getElementById('landing').style.display='flex';document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))}
+function openUser(){document.getElementById('landing').style.display='none';document.getElementById('user-page').classList.add('active');loadRecs()}
+function openManagerLogin(){document.getElementById('pwd-modal').classList.add('show');setTimeout(()=>document.getElementById('pwd-input').focus(),100)}
+function checkPwd(){
+  const v=document.getElementById('pwd-input').value;
+  if(v===MGR_PWD){
+    document.getElementById('pwd-modal').classList.remove('show');
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-err').style.display='none';
+    document.getElementById('landing').style.display='none';
+    document.getElementById('mgr-page').classList.add('active');
+    updateBalUI();loadRecs();populateMonths();setTimeout(renderAnalytics,600);
+  }else{
+    const i=document.getElementById('pwd-input');
+    i.classList.add('err');document.getElementById('pwd-err').style.display='block';
+    i.value='';setTimeout(()=>i.classList.remove('err'),500);
+  }
+}
+function updateBalUI(){
+  document.getElementById('bal-amount').textContent='AED '+cash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const spent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED'&&(r.currency||'AED').toUpperCase()==='AED').reduce((s,r)=>s+parseFloat(r.total_amount||0),0);
+  document.getElementById('bal-sub').textContent=`Spent (AED approved): ${spent.toFixed(2)} | Remaining: ${(cash-spent).toFixed(2)}`;
+}
+function openAmtModal(mode){
+  amtMode=mode;
+  const T={add:'Add Cash',remove:'Remove Cash',weekly:'Set Weekly Top-up'};
+  const D={add:'Enter amount in AED to add:',remove:'Enter amount in AED to remove:',weekly:'Enter weekly top-up amount in AED:'};
+  document.getElementById('amt-title').textContent=T[mode];
+  document.getElementById('amt-desc').textContent=D[mode];
+  document.getElementById('amt-input').value='';
+  document.getElementById('amt-modal-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('amt-input').focus(),100);
+}
+function closeAmtModal(){document.getElementById('amt-modal-overlay').classList.remove('show')}
+function confirmAmount(){
+  const v=parseFloat(document.getElementById('amt-input').value);
+  if(!v||v<=0){toast('Enter a valid amount','err');return}
+  if(amtMode==='add'){cash+=v;localStorage.setItem('pettyCash',cash);toast('✅ Added AED '+v.toFixed(2))}
+  else if(amtMode==='remove'){if(v>cash){toast('Cannot exceed balance','err');return}cash-=v;localStorage.setItem('pettyCash',cash);toast('✅ Removed AED '+v.toFixed(2))}
+  else{weeklyAmt=v;localStorage.setItem('weeklyTopup',weeklyAmt);toast('✅ Weekly top-up: AED '+v.toFixed(2))}
+  updateBalUI();closeAmtModal();
+}
+async function loadRecs(silent=true){
+  try{
+    const r=await fetch(API()+'/records',{signal:AbortSignal.timeout(6000)});
+    allRecs=await r.json();setSrv(true);
+    renderU();renderM();updateUStats();updateMStats();updateBalUI();
+    const ts='Refreshed '+new Date().toLocaleTimeString('en-GB');
+    ['u-ref','m-ref'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=ts});
+    if(!silent)toast(allRecs.length+' records loaded');
+  }catch{
+    setSrv(false);
+    ['u-tbody','m-tbody'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='<tr><td colspan="11"><div class="empty">🔌 Cannot reach server</div></td></tr>'});
+  }
+}
+function getS(r){return r.final_status||r.status||'PENDING'}
+function filterR(f){if(f==='ALL')return allRecs;return allRecs.filter(r=>getS(r)===f||r.status===f)}
+function uFilter(f){uFV=f;document.querySelectorAll('#user-page .ftab').forEach(el=>el.classList.toggle('on',el.textContent.trim()==='All'?f==='ALL':el.textContent.trim().replace(/ /g,'_').toUpperCase()===f));renderU()}
+function mFilter(f){mFV=f;document.querySelectorAll('#mgr-page .ftab').forEach(el=>el.classList.toggle('on',el.textContent.trim()==='All'?f==='ALL':el.textContent.trim().replace(/ /g,'_').toUpperCase()===f));renderM()}
+function sBadge(r){const s=getS(r);const m={'FULLY_APPROVED':'badge bfull','AWAITING_MANAGER2':'badge bawm','REJECTED':'badge br','PENDING':'badge bp','APPROVED':'badge ba'};const l={'FULLY_APPROVED':'✅ FULLY APPROVED','AWAITING_MANAGER2':'⏳ AWAITING MGR2','REJECTED':'❌ REJECTED','PENDING':'PENDING','APPROVED':'APPROVED'};return`<span class="${m[s]||'badge bp'}">${l[s]||s}</span>`}
+function aBadge(v){if(!v||v==='—')return'<span class="badge bw">—</span>';const m={PENDING:'badge bp',WAITING:'badge bw',APPROVED:'badge bfa',REJECTED:'badge br'};return`<span class="${m[v]||'badge bw'}">${v}</span>`}
+function rCell(r){if(!r.rejection_reason)return'—';const L={duplicate:'🔁 Dup',missing_info:'📋 Missing',over_budget:'💰 Budget',not_approved:'🚫 Not Approved',wrong_category:'🏷️ Category',policy:'📜 Policy',other:'✍️ Other'};return`<span style="color:var(--red);font-weight:600">${L[r.rejection_reason]||r.rejection_reason}</span>${r.rejection_notes?'<br><span style="color:#495057;font-size:9px">'+r.rejection_notes+'</span>':''}`}
+function updateUStats(){document.getElementById('u-st').textContent=allRecs.length;document.getElementById('u-sp').textContent=allRecs.filter(r=>r.status==='PENDING').length;document.getElementById('u-sa').textContent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED').length;document.getElementById('u-sr').textContent=allRecs.filter(r=>getS(r)==='REJECTED').length;document.getElementById('u-am2').textContent=allRecs.filter(r=>r.status==='AWAITING_MANAGER2').length}
+function updateMStats(){document.getElementById('m-st').textContent=allRecs.length;document.getElementById('m-sp').textContent=allRecs.filter(r=>r.status==='PENDING').length;document.getElementById('m-sa').textContent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED').length;document.getElementById('m-sr').textContent=allRecs.filter(r=>getS(r)==='REJECTED').length}
+function renderU(){
+  const rows=filterR(uFV).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  document.getElementById('u-cnt').textContent='Showing '+rows.length+' of '+allRecs.length;
+  if(!rows.length){document.getElementById('u-tbody').innerHTML='<tr><td colspan="9"><div class="empty">📭 No invoices</div></td></tr>';return}
+  document.getElementById('u-tbody').innerHTML=rows.map(r=>{
+    const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
+    const cr=(r.created_at||'').substring(0,16).replace('T',' ');
+    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
   }).join('');
 }
-
-function removeFile(id) {
-  fileQueue = fileQueue.filter(f=>f.id!==id);
-  renderQueue(); updateSummary();
+function renderM(){
+  const rows=filterR(mFV).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  document.getElementById('m-cnt').textContent='Showing '+rows.length+' of '+allRecs.length;
+  if(!rows.length){document.getElementById('m-tbody').innerHTML='<tr><td colspan="11"><div class="empty">📭 No invoices</div></td></tr>';return}
+  document.getElementById('m-tbody').innerHTML=rows.map(r=>{
+    const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
+    const cr=(r.created_at||'').substring(0,16).replace('T',' ');
+    const s=getS(r);
+    const canRev=['FULLY_APPROVED','REJECTED','AWAITING_MANAGER2','APPROVED'].includes(s);
+    const revBtn=canRev?`<button class="btn btn-danger" style="font-size:10px;padding:3px 8px" onclick="reverseInvoice('${r.invoice_id}','${s}')">↩ Reverse</button>`:'—';
+    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
+  }).join('');
 }
-
-function clearQueue() {
-  fileQueue = fileQueue.filter(f=>['uploading','processing'].includes(f.status));
-  renderQueue(); updateSummary();
-  document.getElementById('summary-box').classList.remove('show');
+async function reverseInvoice(id,cur){
+  if(!confirm('Reverse invoice '+id+'?\n\nThis resets it to PENDING and resends approval emails from the beginning.'))return;
+  try{
+    const res=await fetch(API()+'/reverse?invoice_id='+id);
+    if(res.ok){toast('✅ Invoice '+id+' reversed to PENDING — approval emails resent');setTimeout(loadRecs,1000)}
+    else toast('Error: '+(await res.text()),'err');
+  }catch(e){toast('Network error','err')}
 }
-
-async function processAll() {
-  if (processing) return;
-  const email   = document.getElementById('sub-email').value.trim();
-  const waiting = fileQueue.filter(f=>f.status==='waiting');
-  if (!waiting.length) return;
-  processing = true; renderQueue();
-
-  async function processItem(item) {
-    item.status = 'uploading'; renderQueue();
-    try {
-      const fd = new FormData();
-      fd.append('file', item.file);
-      fd.append('submitter_email', email);
-      const res = await fetch(API()+'/upload', {method:'POST', body:fd});
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      item.trackId = data.tracking_id||data.invoice_id;
-      item.status  = 'processing'; renderQueue();
-      for (let i=0; i<90; i++) {
+function populateMonths(){
+  const sel=document.getElementById('month-select');
+  const months=new Set();
+  allRecs.forEach(r=>{if(r.created_at)months.add(r.created_at.substring(0,7))});
+  const now=new Date().toISOString().substring(0,7);months.add(now);
+  const sorted=[...months].sort().reverse();
+  sel.innerHTML=sorted.map(m=>{const d=new Date(m+'-01');return`<option value="${m}" ${m===now?'selected':''}>${d.toLocaleString('default',{month:'long',year:'numeric'})}</option>`}).join('');
+}
+function renderAnalytics(){
+  const month=document.getElementById('month-select').value;if(!month)return;
+  const mr=allRecs.filter(r=>(r.created_at||'').startsWith(month));
+  const app=mr.filter(r=>getS(r)==='FULLY_APPROVED');
+  const rej=mr.filter(r=>getS(r)==='REJECTED');
+  const pnd=mr.filter(r=>['PENDING','AWAITING_MANAGER2'].includes(r.status));
+  const spent=app.filter(r=>(r.currency||'AED').toUpperCase()==='AED').reduce((s,r)=>s+parseFloat(r.total_amount||0),0);
+  document.getElementById('an-sub').textContent=mr.length;
+  document.getElementById('an-app').textContent=app.length;
+  document.getElementById('an-rej').textContent=rej.length;
+  document.getElementById('an-spent').textContent='AED '+spent.toFixed(0);
+  // Status donut
+  const sc=document.getElementById('status-chart').getContext('2d');
+  if(sCh)sCh.destroy();
+  sCh=new Chart(sc,{type:'doughnut',data:{labels:['Fully Approved','Rejected','In Progress'],datasets:[{data:[app.length,rej.length,pnd.length],backgroundColor:['#28a745','#dc3545','#ffc107'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}});
+  // Category bar
+  const catMap={};
+  app.forEach(r=>{const c=r.category||'Other';catMap[c]=(catMap[c]||0)+parseFloat(r.total_amount||0)});
+  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const cc=document.getElementById('cat-chart').getContext('2d');
+  if(cCh)cCh.destroy();
+  cCh=new Chart(cc,{type:'bar',data:{labels:cats.map(c=>c[0]),datasets:[{label:'AED',data:cats.map(c=>c[1].toFixed(0)),backgroundColor:['#1a472a','#2d6a4f','#52b788','#95e4b3','#d8f3dc','#b7e4c7','#74c69d'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+  // Daily line
+  const dayMap={};
+  mr.forEach(r=>{const d=(r.created_at||'').substring(0,10);if(!dayMap[d])dayMap[d]={s:0,a:0,r:0};dayMap[d].s++;if(getS(r)==='FULLY_APPROVED')dayMap[d].a++;if(getS(r)==='REJECTED')dayMap[d].r++});
+  const days=Object.keys(dayMap).sort();
+  const dc=document.getElementById('daily-chart').getContext('2d');
+  if(dCh)dCh.destroy();
+  dCh=new Chart(dc,{type:'line',data:{labels:days.map(d=>d.substring(5)),datasets:[{label:'Submitted',data:days.map(d=>dayMap[d].s),borderColor:'#2980b9',backgroundColor:'rgba(41,128,185,.1)',fill:true,tension:.3,pointRadius:3},{label:'Approved',data:days.map(d=>dayMap[d].a),borderColor:'#28a745',backgroundColor:'rgba(40,167,69,.1)',fill:true,tension:.3,pointRadius:3},{label:'Rejected',data:days.map(d=>dayMap[d].r),borderColor:'#dc3545',backgroundColor:'rgba(220,53,69,.1)',fill:true,tension:.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{beginAtZero:true,ticks:{font:{size:9},stepSize:1}},x:{ticks:{font:{size:9}}}}}});
+}
+// Upload
+function onEmail(){const v=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('sub-email').value.trim());document.getElementById('drop').classList.toggle('disabled',!v);document.getElementById('drop-main').textContent=v?'Drop invoices here or click to browse':'Enter email above, then drop invoices here';document.getElementById('sub-email').classList.toggle('err',document.getElementById('sub-email').value.length>0&&!v)}
+function dov(e){e.preventDefault();document.getElementById('drop').classList.add('over')}
+function dlv(){document.getElementById('drop').classList.remove('over')}
+function ddp(e){e.preventDefault();dlv();addFiles(Array.from(e.dataTransfer.files))}
+function onSel(e){addFiles(Array.from(e.target.files));e.target.value=''}
+function addFiles(files){
+  const email=document.getElementById('sub-email').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Please enter a valid email first','err');return}
+  files.filter(f=>{if(f.size>10*1024*1024){toast(f.name+' too large','err');return false}return true}).forEach(f=>{if(!fileQueue.find(q=>q.file.name===f.name&&q.file.size===f.size))fileQueue.push({file:f,id:Math.random().toString(36).slice(2,8).toUpperCase(),status:'waiting',trackId:null})});
+  renderQueue()
+}
+function renderQueue(){
+  const q=document.getElementById('file-queue');
+  if(!fileQueue.length){q.classList.remove('show');return}
+  q.classList.add('show');
+  const waiting=fileQueue.filter(f=>f.status==='waiting').length;
+  document.getElementById('queue-title').textContent=fileQueue.length+' file'+(fileQueue.length>1?'s':'')+' — '+waiting+' waiting';
+  const btn=document.getElementById('process-btn');btn.disabled=processing||waiting===0;btn.textContent=processing?'⏳ Processing...':'▶ Process All';
+  document.getElementById('file-list').innerHTML=fileQueue.map(item=>{
+    const sz=(item.file.size/1024).toFixed(0)+' KB';
+    const sH={waiting:'<span class="status-wait">⏳ Waiting</span>',uploading:'<span class="status-proc">⬆ Uploading...</span>',processing:'<span class="status-proc">⚙ Processing...</span>',ok:'<span class="status-ok">✅ Sent</span>',duplicate:'<span class="status-dup">⚠️ Duplicate</span>',error:'<span class="status-err">❌ Error</span>',rejected:'<span class="status-err">❌ Rejected</span>'}[item.status]||'';
+    const canRm=!['uploading','processing'].includes(item.status);
+    return`<div class="file-item"><div style="font-size:18px">📄</div><div class="file-info"><div class="file-name">${item.file.name}</div><div class="file-size">${sz}</div></div><div class="file-status">${sH}</div>${canRm?`<button class="btn-sm" style="color:var(--red)" onclick="rmFile('${item.id}')">✕</button>`:''}</div>`
+  }).join('')
+}
+function rmFile(id){fileQueue=fileQueue.filter(f=>f.id!==id);renderQueue();updSummary()}
+function clearQueue(){fileQueue=fileQueue.filter(f=>['uploading','processing'].includes(f.status));renderQueue();updSummary();document.getElementById('summary-box').classList.remove('show')}
+async function processAll(){
+  if(processing)return;
+  const email=document.getElementById('sub-email').value.trim();
+  const waiting=fileQueue.filter(f=>f.status==='waiting');
+  if(!waiting.length)return;
+  processing=true;renderQueue();
+  async function proc(item){
+    item.status='uploading';renderQueue();
+    try{
+      const fd=new FormData();fd.append('file',item.file);fd.append('submitter_email',email);
+      const res=await fetch(API()+'/upload',{method:'POST',body:fd});
+      if(!res.ok)throw new Error(await res.text());
+      const data=await res.json();item.trackId=data.tracking_id||data.invoice_id;
+      item.status='processing';renderQueue();
+      for(let i=0;i<90;i++){
         await new Promise(r=>setTimeout(r,2000));
-        try {
-          const sr   = await fetch(API()+'/status/'+item.trackId);
-          const sdata = await sr.json();
-          const ps   = sdata.pipeline_status;
-          if (ps==='pending_approval')           { item.status='ok';        item.result=sdata; break; }
-          if (ps==='duplicate_pending_approval') { item.status='duplicate'; item.result=sdata; break; }
-          if (ps==='rejected')                   { item.status='rejected';  item.result=sdata; break; }
-          if (ps==='error')                      { item.status='error';     item.result=sdata; break; }
-        } catch {}
+        try{const sr=await fetch(API()+'/status/'+item.trackId);const sd=await sr.json();const ps=sd.pipeline_status;
+          if(ps==='pending_approval'){item.status='ok';break}
+          if(ps==='duplicate_pending_approval'){item.status='duplicate';break}
+          if(ps==='rejected'){item.status='rejected';break}
+          if(ps==='error'){item.status='error';break}
+        }catch{}
       }
-      if (['uploading','processing'].includes(item.status)) item.status='error';
-    } catch(e) { item.status='error'; item.result={error:e.message}; }
-    renderQueue(); updateSummary();
+      if(['uploading','processing'].includes(item.status))item.status='error';
+    }catch(e){item.status='error'}
+    renderQueue();updSummary()
   }
-
-  const CONCURRENCY = 3;
-  for (let i=0; i<waiting.length; i+=CONCURRENCY) {
-    await Promise.all(waiting.slice(i,i+CONCURRENCY).map(item=>processItem(item)));
-  }
-  processing = false; renderQueue(); loadRecs(true);
+  const C=3;
+  for(let i=0;i<waiting.length;i+=C)await Promise.all(waiting.slice(i,i+C).map(item=>proc(item)));
+  processing=false;renderQueue();loadRecs(true);
   const ok=fileQueue.filter(f=>f.status==='ok').length;
   const dup=fileQueue.filter(f=>f.status==='duplicate').length;
   const err=fileQueue.filter(f=>['error','rejected'].includes(f.status)).length;
-  toast(`Done: ${ok} sent, ${dup} duplicate${dup!==1?'s':''}, ${err} error${err!==1?'s':''}`);
+  toast(`Done: ${ok} sent, ${dup} duplicate${dup!==1?'s':''}, ${err} error${err!==1?'s':''}`)
 }
-
-function updateSummary() {
-  const ok=fileQueue.filter(f=>f.status==='ok').length;
-  const dup=fileQueue.filter(f=>f.status==='duplicate').length;
-  const err=fileQueue.filter(f=>['error','rejected'].includes(f.status)).length;
-  if (ok+dup+err===0) { document.getElementById('summary-box').classList.remove('show'); return; }
+function updSummary(){
+  const ok=fileQueue.filter(f=>f.status==='ok').length,dup=fileQueue.filter(f=>f.status==='duplicate').length,err=fileQueue.filter(f=>['error','rejected'].includes(f.status)).length;
+  if(ok+dup+err===0){document.getElementById('summary-box').classList.remove('show');return}
   document.getElementById('summary-box').classList.add('show');
-  document.getElementById('sum-total').textContent = fileQueue.length;
-  document.getElementById('sum-ok').textContent    = ok;
-  document.getElementById('sum-dup').textContent   = dup;
-  document.getElementById('sum-err').textContent   = err;
+  document.getElementById('sum-total').textContent=fileQueue.length;document.getElementById('sum-ok').textContent=ok;document.getElementById('sum-dup').textContent=dup;document.getElementById('sum-err').textContent=err;
 }
-
-function dov(e){ e.preventDefault(); document.getElementById('drop').classList.add('over'); }
-function dlv(){ document.getElementById('drop').classList.remove('over'); }
-function ddp(e){ e.preventDefault(); dlv(); addFiles(Array.from(e.dataTransfer.files)); }
-function onSel(e){ addFiles(Array.from(e.target.files)); e.target.value=''; }
-
-loadRecs(true);
-setInterval(()=>loadRecs(true), 10000);
+loadRecs(true);setInterval(()=>loadRecs(true),15000);
 </script>
 </body>
 </html>
