@@ -151,6 +151,29 @@ tr:hover td{background:#f8fff8}
 .analytics-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .month-select{padding:5px 9px;border:1px solid var(--border);border-radius:5px;font-size:12px;outline:none}
 .month-select:focus{border-color:var(--g2)}
+/* TRANSACTION HISTORY */
+.txn-list{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto}
+.txn-item{display:flex;align-items:center;gap:12px;padding:10px 14px;
+  background:var(--light);border-radius:8px;border-left:3px solid var(--border)}
+.txn-item.add{border-left-color:#28a745}
+.txn-item.remove{border-left-color:var(--red)}
+.txn-item.topup{border-left-color:#ffd700}
+.txn-item.invoice{border-left-color:#2980b9}
+.txn-icon{font-size:18px;flex-shrink:0}
+.txn-body{flex:1;min-width:0}
+.txn-title{font-size:12px;font-weight:600;color:var(--text)}
+.txn-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.txn-amt{font-size:13px;font-weight:700;flex-shrink:0;white-space:nowrap}
+.txn-amt.pos{color:#28a745}.txn-amt.neg{color:var(--red)}
+.txn-bal{font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap;text-align:right}
+.txn-empty{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+
+/* WEEKLY MODAL EXTRA */
+.topup-tabs{display:flex;gap:8px;margin-bottom:14px}
+.topup-tab{flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:600;
+  cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--muted);text-align:center}
+.topup-tab.on{background:var(--g2);color:#fff;border-color:var(--g2)}
+
 /* TOAST */
 #toast{position:fixed;bottom:20px;right:20px;background:var(--g1);color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.18);transform:translateY(70px);opacity:0;transition:all .3s;z-index:9999}
 #toast.show{transform:translateY(0);opacity:1}#toast.err{background:var(--red)}
@@ -220,6 +243,10 @@ tr:hover td{background:#f8fff8}
   <div class="amt-modal">
     <h3 id="amt-title">Add Cash</h3>
     <p id="amt-desc">Enter amount in AED</p>
+    <div class="topup-tabs" id="topup-tabs" style="display:none">
+      <div class="topup-tab on" id="tab-weekly" onclick="selectTopupTab('weekly')">📅 Weekly</div>
+      <div class="topup-tab" id="tab-monthly" onclick="selectTopupTab('monthly')">📆 Monthly</div>
+    </div>
     <input type="number" class="amt-input" id="amt-input" placeholder="0.00" min="0">
     <div class="amt-actions">
       <button class="amt-cancel" onclick="closeAmtModal()">Cancel</button>
@@ -337,7 +364,7 @@ tr:hover td{background:#f8fff8}
       <div class="bal-actions">
         <button class="bal-btn bal-add" onclick="openAmtModal('add')">+ Add Cash</button>
         <button class="bal-btn bal-remove" onclick="openAmtModal('remove')">− Remove Cash</button>
-        <button class="bal-btn bal-weekly" onclick="openAmtModal('weekly')">🔄 Weekly Top-up</button>
+        <button class="bal-btn bal-weekly" onclick="openAmtModal('weekly')">🔄 Weekly/Monthly Top-up</button>
       </div>
     </div>
     <!-- Stats -->
@@ -370,6 +397,22 @@ tr:hover td{background:#f8fff8}
         </div>
       </div>
     </div>
+    <!-- Cash Transaction History -->
+    <div class="card">
+      <div class="ch">
+        <span class="ct">💳 Cash Transaction History</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="txn-balance-label" style="font-size:12px;color:var(--muted)"></span>
+          <button class="btn" onclick="renderTxnHistory()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="cb" style="padding:12px 16px">
+        <div class="txn-list" id="txn-list">
+          <div class="txn-empty">No transactions yet</div>
+        </div>
+      </div>
+    </div>
+
     <!-- All Invoices -->
     <div class="card">
       <div class="ch">
@@ -406,6 +449,23 @@ let allRecs=[],uFV='ALL',mFV='ALL',fileQueue=[],processing=false;
 let cash=parseFloat(localStorage.getItem('pettyCash')||'5000');
 let weeklyAmt=parseFloat(localStorage.getItem('weeklyTopup')||'0');
 let amtMode='add';
+let topupTab='weekly';
+
+// Transaction history stored in localStorage
+function getTxns(){try{return JSON.parse(localStorage.getItem('cashTxns')||'[]')}catch{return[]}}
+function saveTxns(t){localStorage.setItem('cashTxns',JSON.stringify(t))}
+function addTxn(type,amount,label,invoiceId,invoiceNo,balAfter){
+  const txns=getTxns();
+  txns.unshift({
+    id:Date.now(),type,amount,label,
+    invoiceId:invoiceId||'',invoiceNo:invoiceNo||'',
+    balAfter,
+    ts:new Date().toISOString()
+  });
+  // Keep last 500 transactions
+  if(txns.length>500)txns.pop();
+  saveTxns(txns);
+}
 let sCh=null,cCh=null,dCh=null;
 
 setInterval(()=>{const t=new Date().toLocaleTimeString('en-GB');['u-clk','m-clk'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=t})},1000);
@@ -433,25 +493,51 @@ function checkPwd(){
 function updateBalUI(){
   document.getElementById('bal-amount').textContent='AED '+cash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const spent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED'&&(r.currency||'AED').toUpperCase()==='AED').reduce((s,r)=>s+parseFloat(r.total_amount||0),0);
-  document.getElementById('bal-sub').textContent=`Spent (AED approved): ${spent.toFixed(2)} | Remaining: ${(cash-spent).toFixed(2)}`;
+  document.getElementById('bal-sub').textContent=`Approved spend (AED): ${spent.toFixed(2)} | Remaining: ${(cash-spent).toFixed(2)}`;
+  renderTxnHistory();
 }
 function openAmtModal(mode){
   amtMode=mode;
-  const T={add:'Add Cash',remove:'Remove Cash',weekly:'Set Weekly Top-up'};
-  const D={add:'Enter amount in AED to add:',remove:'Enter amount in AED to remove:',weekly:'Enter weekly top-up amount in AED:'};
+  const T={add:'Add Cash',remove:'Remove Cash',weekly:'Weekly / Monthly Top-up'};
+  const D={add:'Enter amount in AED to add to balance:',remove:'Enter amount in AED to remove:',weekly:'Set recurring top-up amount (AED):'};
   document.getElementById('amt-title').textContent=T[mode];
   document.getElementById('amt-desc').textContent=D[mode];
   document.getElementById('amt-input').value='';
+  // Show/hide topup tabs
+  const tabs=document.getElementById('topup-tabs');
+  tabs.style.display=mode==='weekly'?'flex':'none';
+  if(mode==='weekly'){selectTopupTab('weekly')}
   document.getElementById('amt-modal-overlay').classList.add('show');
   setTimeout(()=>document.getElementById('amt-input').focus(),100);
+}
+function selectTopupTab(tab){
+  topupTab=tab;
+  document.getElementById('tab-weekly').classList.toggle('on',tab==='weekly');
+  document.getElementById('tab-monthly').classList.toggle('on',tab==='monthly');
+  document.getElementById('amt-desc').textContent=
+    tab==='weekly'?'Set weekly top-up amount (AED):':'Set monthly top-up amount (AED):';
 }
 function closeAmtModal(){document.getElementById('amt-modal-overlay').classList.remove('show')}
 function confirmAmount(){
   const v=parseFloat(document.getElementById('amt-input').value);
   if(!v||v<=0){toast('Enter a valid amount','err');return}
-  if(amtMode==='add'){cash+=v;localStorage.setItem('pettyCash',cash);toast('✅ Added AED '+v.toFixed(2))}
-  else if(amtMode==='remove'){if(v>cash){toast('Cannot exceed balance','err');return}cash-=v;localStorage.setItem('pettyCash',cash);toast('✅ Removed AED '+v.toFixed(2))}
-  else{weeklyAmt=v;localStorage.setItem('weeklyTopup',weeklyAmt);toast('✅ Weekly top-up: AED '+v.toFixed(2))}
+  if(amtMode==='add'){
+    cash+=v;localStorage.setItem('pettyCash',cash);
+    addTxn('add',v,'Cash Added — Manual top-up','','',cash);
+    toast('✅ Added AED '+v.toFixed(2));
+  }else if(amtMode==='remove'){
+    if(v>cash){toast('Cannot exceed balance','err');return}
+    cash-=v;localStorage.setItem('pettyCash',cash);
+    addTxn('remove',v,'Cash Removed — Manual withdrawal','','',cash);
+    toast('✅ Removed AED '+v.toFixed(2));
+  }else{
+    weeklyAmt=v;
+    const label=topupTab==='weekly'?'Weekly':'Monthly';
+    localStorage.setItem('weeklyTopup',weeklyAmt);
+    localStorage.setItem('topupType',topupTab);
+    addTxn('topup',v,label+' Top-up configured (AED '+v.toFixed(2)+'/'+topupTab+')','','',cash);
+    toast('✅ '+label+' top-up set: AED '+v.toFixed(2));
+  }
   updateBalUI();closeAmtModal();
 }
 async function loadRecs(silent=true){
@@ -510,6 +596,73 @@ function renderM(){
     return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
   }).join('');
 }
+function toDubaiShort(isoStr){
+  if(!isoStr)return'—';
+  try{
+    const d=new Date(isoStr.startsWith('{')?JSON.parse(isoStr):isoStr);
+    return d.toLocaleString('en-GB',{timeZone:'Asia/Dubai',
+      day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:false}).replace(',','');
+  }catch{return isoStr.substring(0,16)}
+}
+
+function renderTxnHistory(){
+  const txns=getTxns();
+  const el=document.getElementById('txn-list');
+  if(!el)return;
+
+  // Also build invoice deduction entries from approved invoices
+  // These are computed from allRecs — not stored separately
+  const invoiceDeductions=allRecs
+    .filter(r=>getS(r)==='FULLY_APPROVED'&&(r.currency||'AED').toUpperCase()==='AED')
+    .map(r=>({
+      id:'inv_'+r.invoice_id,
+      type:'invoice',
+      amount:parseFloat(r.total_amount||0),
+      label:'Invoice Approved — '+r.vendor_name,
+      invoiceId:r.invoice_id||'',
+      invoiceNo:r.invoice_number||'—',
+      ts:r.updated_at||r.created_at||'',
+      balAfter:null // computed separately
+    }));
+
+  // Merge manual txns + invoice deductions, sort by date desc
+  const allTxns=[...getTxns(),...invoiceDeductions]
+    .sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+
+  // Update label
+  const lbl=document.getElementById('txn-balance-label');
+  if(lbl)lbl.textContent=allTxns.length+' transactions';
+
+  if(!allTxns.length){
+    el.innerHTML='<div class="txn-empty">No transactions yet — add cash or approve invoices to see history</div>';
+    return;
+  }
+
+  const icons={add:'💵',remove:'💸',topup:'🔄',invoice:'🧾'};
+  el.innerHTML=allTxns.map(t=>{
+    const isPos=t.type==='add'||t.type==='topup';
+    const isNeg=t.type==='remove'||t.type==='invoice';
+    const amtStr=(isNeg?'− ':'+ ')+'AED '+parseFloat(t.amount||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const amtClass=isPos?'pos':'neg';
+    const bal=t.balAfter!=null?`<div class="txn-bal">Bal: AED ${parseFloat(t.balAfter).toLocaleString('en-US',{minimumFractionDigits:2})}</div>`:'';
+    const meta=t.type==='invoice'
+      ?`Invoice ID: ${t.invoiceId} · No: ${t.invoiceNo} · ${toDubaiShort(t.ts)}`
+      :toDubaiShort(t.ts);
+    return`<div class="txn-item ${t.type}">
+      <div class="txn-icon">${icons[t.type]||'💰'}</div>
+      <div class="txn-body">
+        <div class="txn-title">${t.label||'Transaction'}</div>
+        <div class="txn-meta">${meta}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="txn-amt ${amtClass}">${amtStr}</div>
+        ${bal}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function reverseInvoice(id,cur){
   if(!confirm('Reverse invoice '+id+'?\n\nThis resets it to PENDING and resends approval emails from the beginning.'))return;
   try{
