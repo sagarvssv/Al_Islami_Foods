@@ -393,10 +393,26 @@ tr:hover td{background:#f8fff8}
         <div class="analytics-grid">
           <div class="chart-card"><div class="chart-title">Invoice Status Distribution</div><canvas id="status-chart" height="200"></canvas></div>
           <div class="chart-card"><div class="chart-title">Amount by Category (AED)</div><canvas id="cat-chart" height="200"></canvas></div>
-          <div class="chart-card" style="grid-column:span 2"><div class="chart-title">Daily Invoice Activity</div><canvas id="daily-chart" height="120"></canvas></div>
+
         </div>
       </div>
     </div>
+    <!-- Category Spend Dashboard -->
+    <div class="card">
+      <div class="ch">
+        <span class="ct">🏷️ Category Spend Dashboard</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="month-select" id="cat-month-select" onchange="renderCatDashboard()"></select>
+          <button class="btn" onclick="renderCatDashboard()">↻</button>
+        </div>
+      </div>
+      <div class="cb">
+        <div id="cat-dashboard-content">
+          <div class="empty">⏳ Loading...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Cash Transaction History -->
     <div class="card">
       <div class="ch">
@@ -466,7 +482,7 @@ function addTxn(type,amount,label,invoiceId,invoiceNo,balAfter){
   if(txns.length>500)txns.pop();
   saveTxns(txns);
 }
-let sCh=null,cCh=null,dCh=null;
+let sCh=null,cCh=null;
 
 setInterval(()=>{const t=new Date().toLocaleTimeString('en-GB');['u-clk','m-clk'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=t})},1000);
 
@@ -483,7 +499,7 @@ function checkPwd(){
     document.getElementById('pwd-err').style.display='none';
     document.getElementById('landing').style.display='none';
     document.getElementById('mgr-page').classList.add('active');
-    updateBalUI();loadRecs();populateMonths();setTimeout(renderAnalytics,600);
+    updateBalUI();loadRecs();populateMonths();populateCatMonths();setTimeout(renderAnalytics,600);setTimeout(renderCatDashboard,700);
   }else{
     const i=document.getElementById('pwd-input');
     i.classList.add('err');document.getElementById('pwd-err').style.display='block';
@@ -548,6 +564,9 @@ async function loadRecs(silent=true){
     const ts='Refreshed '+new Date().toLocaleTimeString('en-GB');
     ['u-ref','m-ref'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=ts});
     if(!silent)toast(allRecs.length+' records loaded');
+  if(document.getElementById('mgr-page').classList.contains('active')){
+    populateCatMonths();renderCatDashboard();
+  }
   }catch{
     setSrv(false);
     ['u-tbody','m-tbody'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='<tr><td colspan="11"><div class="empty">🔌 Cannot reach server</div></td></tr>'});
@@ -596,6 +615,112 @@ function renderM(){
     return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
   }).join('');
 }
+function populateCatMonths(){
+  const sel=document.getElementById('cat-month-select');
+  if(!sel)return;
+  const months=new Set();
+  allRecs.forEach(r=>{if(r.created_at)months.add(r.created_at.substring(0,7))});
+  const now=new Date().toISOString().substring(0,7);months.add(now);
+  const sorted=[...months].sort().reverse();
+  sel.innerHTML=sorted.map(m=>{
+    const d=new Date(m+'-01');
+    return`<option value="${m}" ${m===now?'selected':''}>${d.toLocaleString('default',{month:'long',year:'numeric'})}</option>`
+  }).join('');
+}
+
+function renderCatDashboard(){
+  const month=document.getElementById('cat-month-select')?.value;
+  if(!month)return;
+  const el=document.getElementById('cat-dashboard-content');
+  if(!el)return;
+
+  const mr=allRecs.filter(r=>(r.created_at||'').startsWith(month)&&getS(r)==='FULLY_APPROVED');
+
+  // Build category map
+  const catMap={};
+  mr.forEach(r=>{
+    const cat=r.category||'Other';
+    const curr=(r.currency||'AED').toUpperCase();
+    if(!catMap[cat])catMap[cat]={aed:0,other:0,count:0,invoices:[]};
+    catMap[cat].count++;
+    catMap[cat].invoices.push({id:r.invoice_id,no:r.invoice_number,vendor:r.vendor_name,amount:r.total_amount,currency:curr});
+    if(curr==='AED') catMap[cat].aed+=parseFloat(r.total_amount||0);
+    else catMap[cat].other+=parseFloat(r.total_amount||0);
+  });
+
+  const cats=Object.entries(catMap).sort((a,b)=>b[1].aed-a[1].aed);
+  const totalAED=cats.reduce((s,c)=>s+c[1].aed,0);
+
+  if(!cats.length){
+    el.innerHTML='<div class="empty">📭 No approved invoices for this month</div>';
+    return;
+  }
+
+  // Color palette
+  const colors=['#1a472a','#2d6a4f','#52b788','#e67e22','#2980b9','#8e44ad','#c0392b','#16a085','#d35400','#27ae60'];
+
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+      <div style="background:var(--g4);border-radius:10px;padding:16px 20px;border:1px solid var(--g3)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total AED Spent</div>
+        <div style="font-size:26px;font-weight:800;color:var(--g1)">AED ${totalAED.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${mr.length} approved invoice${mr.length!==1?'s':''} · ${cats.length} categor${cats.length!==1?'ies':'y'}</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:16px 20px;border:1px solid var(--border)">
+        <canvas id="cat-pie-chart" height="120"></canvas>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${cats.map((c,i)=>{
+        const [cat,data]=c;
+        const pct=totalAED>0?(data.aed/totalAED*100):0;
+        const col=colors[i%colors.length];
+        return`<div style="background:var(--light);border-radius:10px;padding:14px 16px;border-left:4px solid ${col}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0"></div>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">${cat}</span>
+              <span style="background:#e9ecef;color:#495057;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">${data.count} invoice${data.count!==1?'s':''}</span>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:15px;font-weight:800;color:${col}">AED ${data.aed.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+              <div style="font-size:10px;color:var(--muted)">${pct.toFixed(1)}% of total</div>
+            </div>
+          </div>
+          <div style="background:#e9ecef;border-radius:4px;height:8px;overflow:hidden;margin-bottom:8px">
+            <div style="height:8px;border-radius:4px;background:${col};width:${pct.toFixed(1)}%;transition:width .6s"></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${data.invoices.map(inv=>`<span style="background:#fff;border:1px solid #dee2e6;border-radius:6px;padding:3px 8px;font-size:10px;color:#495057">
+              <span style="font-weight:600;color:var(--g1)">${inv.id}</span> · ${inv.vendor||'—'} · <span style="font-weight:600">${inv.amount} ${inv.currency}</span>
+            </span>`).join('')}
+          </div>
+        </div>`
+      }).join('')}
+    </div>`;
+
+  // Pie chart
+  setTimeout(()=>{
+    const pc=document.getElementById('cat-pie-chart');
+    if(!pc)return;
+    // Destroy old if exists
+    if(window._catPie)window._catPie.destroy();
+    window._catPie=new Chart(pc.getContext('2d'),{
+      type:'doughnut',
+      data:{
+        labels:cats.map(c=>c[0]),
+        datasets:[{
+          data:cats.map(c=>c[1].aed.toFixed(2)),
+          backgroundColor:cats.map((_,i)=>colors[i%colors.length]),
+          borderWidth:2,borderColor:'#fff'
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:true,
+        plugins:{legend:{position:'right',labels:{font:{size:9},boxWidth:10}}}}
+    });
+  },100);
+}
+
 function toDubaiShort(isoStr){
   if(!isoStr)return'—';
   try{
@@ -701,13 +826,7 @@ function renderAnalytics(){
   const cc=document.getElementById('cat-chart').getContext('2d');
   if(cCh)cCh.destroy();
   cCh=new Chart(cc,{type:'bar',data:{labels:cats.map(c=>c[0]),datasets:[{label:'AED',data:cats.map(c=>c[1].toFixed(0)),backgroundColor:['#1a472a','#2d6a4f','#52b788','#95e4b3','#d8f3dc','#b7e4c7','#74c69d'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
-  // Daily line
-  const dayMap={};
-  mr.forEach(r=>{const d=(r.created_at||'').substring(0,10);if(!dayMap[d])dayMap[d]={s:0,a:0,r:0};dayMap[d].s++;if(getS(r)==='FULLY_APPROVED')dayMap[d].a++;if(getS(r)==='REJECTED')dayMap[d].r++});
-  const days=Object.keys(dayMap).sort();
-  const dc=document.getElementById('daily-chart').getContext('2d');
-  if(dCh)dCh.destroy();
-  dCh=new Chart(dc,{type:'line',data:{labels:days.map(d=>d.substring(5)),datasets:[{label:'Submitted',data:days.map(d=>dayMap[d].s),borderColor:'#2980b9',backgroundColor:'rgba(41,128,185,.1)',fill:true,tension:.3,pointRadius:3},{label:'Approved',data:days.map(d=>dayMap[d].a),borderColor:'#28a745',backgroundColor:'rgba(40,167,69,.1)',fill:true,tension:.3,pointRadius:3},{label:'Rejected',data:days.map(d=>dayMap[d].r),borderColor:'#dc3545',backgroundColor:'rgba(220,53,69,.1)',fill:true,tension:.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{beginAtZero:true,ticks:{font:{size:9},stepSize:1}},x:{ticks:{font:{size:9}}}}}});
+
 }
 // Upload
 function onEmail(){const v=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('sub-email').value.trim());document.getElementById('drop').classList.toggle('disabled',!v);document.getElementById('drop-main').textContent=v?'Drop invoices here or click to browse':'Enter email above, then drop invoices here';document.getElementById('sub-email').classList.toggle('err',document.getElementById('sub-email').value.length>0&&!v)}
