@@ -227,21 +227,103 @@ def send_submitter_notification(submitter_email: str, invoice: dict,
     if not ensure_ses_verified(submitter_email):
         return
     try:
-        ses    = get_aws_session().client('ses')
-        vendor = invoice.get('vendor_name', 'Unknown')
-        amount = invoice.get('total_amount', 0)
-        curr   = invoice.get('currency', 'AED')
-        color  = '#28a745' if 'APPROVED' in status else '#dc3545'
-        icon   = '✅' if 'APPROVED' in status else '❌'
-        label  = 'APPROVED' if 'APPROVED' in status else 'REJECTED'
+        ses     = get_aws_session().client('ses')
+        vendor  = invoice.get('vendor_name', 'Unknown')
+        amount  = invoice.get('total_amount', 0)
+        curr    = invoice.get('currency', 'AED')
+        inv_num = invoice.get('invoice_number', 'N/A')
+        date    = invoice.get('invoice_date', 'N/A')
+        cat     = invoice.get('category', 'Other')
+
+        is_approved = 'APPROVED' in status
+        color   = '#28a745' if is_approved else '#dc3545'
+        icon    = '✅' if is_approved else '❌'
+        label   = 'FULLY APPROVED' if is_approved else 'REJECTED'
         subject = f"{icon} Invoice {label} — {vendor} — {amount} {curr}"
-        plain   = f"Al Islami Foods: Your invoice {vendor} {amount} {curr} has been {label} by both managers. ID: {invoice_id}"
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0">
+<tr><td align="center">
+<table width="540" cellpadding="0" cellspacing="0"
+  style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+  <tr>
+    <td style="background:linear-gradient(135deg,#1a472a,#2d6a4f);padding:24px 32px;text-align:center">
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">🌿 Al Islami Foods</h1>
+      <p style="margin:4px 0 0;color:#a8d5b5;font-size:12px">Petty Cash — Invoice Decision</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:28px 32px;text-align:center">
+      <div style="width:72px;height:72px;border-radius:50%;background:{'#e8f5e9' if is_approved else '#fde8e8'};
+                  margin:0 auto 14px;display:flex;align-items:center;justify-content:center;
+                  font-size:38px;line-height:72px">{icon}</div>
+      <h2 style="color:{color};font-size:22px;margin:0 0 6px;font-weight:800">
+        Invoice {'Fully Approved!' if is_approved else 'Rejected'}
+      </h2>
+      <p style="color:#6c757d;font-size:14px;margin:0 0 20px">
+        {'Both managers have approved your submission.' if is_approved else 'Your submission has been reviewed and rejected.'}
+      </p>
+
+      <div style="background:#{'f0fff4' if is_approved else 'fff5f5'};border:2px solid {color};
+                  border-radius:10px;padding:16px 20px;margin-bottom:20px;text-align:center">
+        <div style="font-size:13px;color:#495057;margin-bottom:4px">Decision</div>
+        <div style="font-size:20px;font-weight:800;color:{color}">{label}</div>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#f8f9fa;border-radius:8px;overflow:hidden;text-align:left;margin-bottom:16px">
+        <tr style="background:#e9ecef">
+          <td colspan="2" style="padding:10px 16px;font-weight:700;font-size:11px;
+              color:#495057;text-transform:uppercase;letter-spacing:.5px">Invoice Details</td>
+        </tr>
+        <tr><td style="padding:8px 16px;color:#6c757d;font-size:13px;width:40%">Vendor</td>
+            <td style="padding:8px 16px;font-weight:600;font-size:13px">{vendor}</td></tr>
+        <tr style="background:#fff">
+            <td style="padding:8px 16px;color:#6c757d;font-size:13px">Invoice No</td>
+            <td style="padding:8px 16px;font-weight:600;font-size:13px">{inv_num}</td></tr>
+        <tr><td style="padding:8px 16px;color:#6c757d;font-size:13px">Date</td>
+            <td style="padding:8px 16px;font-weight:600;font-size:13px">{date}</td></tr>
+        <tr style="background:#fff">
+            <td style="padding:8px 16px;color:#6c757d;font-size:13px">Category</td>
+            <td style="padding:8px 16px;font-weight:600;font-size:13px">{cat}</td></tr>
+        <tr style="background:#{'e8f5e9' if is_approved else 'fff5f5'}">
+            <td style="padding:10px 16px;color:#{'2d6a4f' if is_approved else 'dc3545'};font-size:13px;font-weight:700">Amount</td>
+            <td style="padding:10px 16px;font-weight:800;font-size:16px;color:{color}">{amount} {curr}</td></tr>
+      </table>
+
+      <p style="font-size:11px;color:#adb5bd;margin:0">
+        Invoice ID: <span style="font-family:monospace">{invoice_id}</span>
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="background:#f8f9fa;padding:12px 32px;text-align:center;border-top:1px solid #dee2e6">
+      <p style="margin:0;font-size:11px;color:#adb5bd">
+        Al Islami Foods Petty Cash AI &nbsp;|&nbsp; AgentCore · Textract · Claude
+      </p>
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body></html>"""
+
+        plain = f"""Al Islami Foods — Invoice {label}
+Vendor: {vendor} | Invoice No: {inv_num} | Amount: {amount} {curr}
+Category: {cat} | ID: {invoice_id}
+{'Both managers have approved your submission.' if is_approved else 'Your submission has been rejected.'}"""
+
         ses.send_email(
             Source=MANAGER1_EMAIL,
             Destination={'ToAddresses': [submitter_email]},
             Message={
                 'Subject': {'Data': subject, 'Charset': 'UTF-8'},
-                'Body': {'Text': {'Data': plain, 'Charset': 'UTF-8'}}
+                'Body': {
+                    'Html': {'Data': html,  'Charset': 'UTF-8'},
+                    'Text': {'Data': plain, 'Charset': 'UTF-8'}
+                }
             }
         )
         print(f"[NOTIFY] Submitter notified: {submitter_email} -> {label}")

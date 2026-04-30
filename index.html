@@ -508,7 +508,7 @@ function checkPwd(){
 }
 function updateBalUI(){
   document.getElementById('bal-amount').textContent='AED '+cash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const spent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED'&&(r.currency||'AED').toUpperCase()==='AED').reduce((s,r)=>s+parseFloat(r.total_amount||0),0);
+  const spent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED').reduce((s,r)=>s+toAED(r.total_amount,r.currency),0);
   document.getElementById('bal-sub').textContent=`Approved spend (AED): ${spent.toFixed(2)} | Remaining: ${(cash-spent).toFixed(2)}`;
   renderTxnHistory();
 }
@@ -615,6 +615,38 @@ function renderM(){
     return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
   }).join('');
 }
+// Approximate exchange rates to AED (updated periodically)
+const FX_TO_AED = {
+  'AED': 1.0,
+  'USD': 3.67,
+  'EUR': 3.99,
+  'GBP': 4.63,
+  'INR': 0.044,
+  'SAR': 0.978,
+  'QAR': 1.008,
+  'KWD': 11.96,
+  'BHD': 9.74,
+  'OMR': 9.54,
+  'PKR': 0.013,
+  'EGP': 0.075,
+  'JOD': 5.18,
+  'LBP': 0.000041,
+  'CNY': 0.505,
+  'JPY': 0.024,
+};
+
+function toAED(amount, currency) {
+  const curr = (currency || 'AED').toUpperCase().trim();
+  const rate  = FX_TO_AED[curr] || 1.0;
+  return parseFloat(amount || 0) * rate;
+}
+
+function fmtAED(amount) {
+  return 'AED ' + parseFloat(amount).toLocaleString('en-US', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+}
+
 function populateCatMonths(){
   const sel=document.getElementById('cat-month-select');
   if(!sel)return;
@@ -641,15 +673,21 @@ function renderCatDashboard(){
   mr.forEach(r=>{
     const cat=r.category||'Other';
     const curr=(r.currency||'AED').toUpperCase();
-    if(!catMap[cat])catMap[cat]={aed:0,other:0,count:0,invoices:[]};
+    const aedAmt=toAED(r.total_amount,curr);
+    if(!catMap[cat])catMap[cat]={aed:0,count:0,invoices:[]};
     catMap[cat].count++;
-    catMap[cat].invoices.push({id:r.invoice_id,no:r.invoice_number,vendor:r.vendor_name,amount:r.total_amount,currency:curr});
-    if(curr==='AED') catMap[cat].aed+=parseFloat(r.total_amount||0);
-    else catMap[cat].other+=parseFloat(r.total_amount||0);
+    catMap[cat].aed+=aedAmt;
+    catMap[cat].invoices.push({
+      id:r.invoice_id,no:r.invoice_number,vendor:r.vendor_name,
+      amount:r.total_amount,currency:curr,
+      aedAmt:aedAmt
+    });
   });
 
   const cats=Object.entries(catMap).sort((a,b)=>b[1].aed-a[1].aed);
   const totalAED=cats.reduce((s,c)=>s+c[1].aed,0);
+  const fxNote=mr.some(r=>(r.currency||'AED').toUpperCase()!=='AED')
+    ?'<div style="font-size:10px;color:var(--muted);margin-top:4px">* Non-AED amounts converted at approximate market rates</div>':''
 
   if(!cats.length){
     el.innerHTML='<div class="empty">📭 No approved invoices for this month</div>';
@@ -663,8 +701,9 @@ function renderCatDashboard(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
       <div style="background:var(--g4);border-radius:10px;padding:16px 20px;border:1px solid var(--g3)">
         <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total AED Spent</div>
-        <div style="font-size:26px;font-weight:800;color:var(--g1)">AED ${totalAED.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div style="font-size:26px;font-weight:800;color:var(--g1)">${fmtAED(totalAED)}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">${mr.length} approved invoice${mr.length!==1?'s':''} · ${cats.length} categor${cats.length!==1?'ies':'y'}</div>
+        ${fxNote}
       </div>
       <div style="background:#fff;border-radius:10px;padding:16px 20px;border:1px solid var(--border)">
         <canvas id="cat-pie-chart" height="120"></canvas>
@@ -683,7 +722,7 @@ function renderCatDashboard(){
               <span style="background:#e9ecef;color:#495057;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">${data.count} invoice${data.count!==1?'s':''}</span>
             </div>
             <div style="text-align:right">
-              <div style="font-size:15px;font-weight:800;color:${col}">AED ${data.aed.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+              <div style="font-size:15px;font-weight:800;color:${col}">${fmtAED(data.aed)}</div>
               <div style="font-size:10px;color:var(--muted)">${pct.toFixed(1)}% of total</div>
             </div>
           </div>
@@ -692,7 +731,7 @@ function renderCatDashboard(){
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px">
             ${data.invoices.map(inv=>`<span style="background:#fff;border:1px solid #dee2e6;border-radius:6px;padding:3px 8px;font-size:10px;color:#495057">
-              <span style="font-weight:600;color:var(--g1)">${inv.id}</span> · ${inv.vendor||'—'} · <span style="font-weight:600">${inv.amount} ${inv.currency}</span>
+              <span style="font-weight:600;color:var(--g1)">${inv.id}</span> · ${inv.vendor||'—'} · <span style="font-weight:600">${inv.amount} ${inv.currency}</span>${inv.currency!=='AED'?` <span style="color:var(--muted)">(≈ ${fmtAED(inv.aedAmt)})</span>`:''}
             </span>`).join('')}
           </div>
         </div>`
@@ -810,11 +849,11 @@ function renderAnalytics(){
   const app=mr.filter(r=>getS(r)==='FULLY_APPROVED');
   const rej=mr.filter(r=>getS(r)==='REJECTED');
   const pnd=mr.filter(r=>['PENDING','AWAITING_MANAGER2'].includes(r.status));
-  const spent=app.filter(r=>(r.currency||'AED').toUpperCase()==='AED').reduce((s,r)=>s+parseFloat(r.total_amount||0),0);
+  const spent=app.reduce((s,r)=>s+toAED(r.total_amount,r.currency),0);
   document.getElementById('an-sub').textContent=mr.length;
   document.getElementById('an-app').textContent=app.length;
   document.getElementById('an-rej').textContent=rej.length;
-  document.getElementById('an-spent').textContent='AED '+spent.toFixed(0);
+  document.getElementById('an-spent').textContent=fmtAED(spent);
   // Status donut
   const sc=document.getElementById('status-chart').getContext('2d');
   if(sCh)sCh.destroy();
