@@ -808,19 +808,27 @@ function renderCatDashboard(){
 function timeDiff(isoStr){
   if(!isoStr) return {label:'Unknown',hours:0,cls:'normal'};
   try{
-    const now=new Date();
-    const then=new Date(isoStr.includes('T')?isoStr:isoStr.replace(' ','T')+'Z');
-    const diffMs=now-then;
-    const hours=Math.floor(diffMs/3600000);
-    const days=Math.floor(hours/24);
-    const mins=Math.floor((diffMs%3600000)/60000);
-    let label,cls;
-    if(hours<1)       {label=mins+'m';           cls='normal'}
-    else if(hours<24) {label=hours+'h '+Math.floor((diffMs%3600000)/60000)+'m'; cls='normal'}
-    else if(days<3)   {label=days+'d '+Math.floor(hours%24)+'h';               cls='warning'}
-    else              {label=days+' days';                                       cls='urgent'}
-    return{label,hours,cls};
-  }catch{return{label:'?',hours:0,cls:'normal'}}
+    // Both times must be treated as UTC for accurate diff
+    // DynamoDB stores created_at as UTC ISO string (no Z suffix)
+    // Add Z to force UTC parsing
+    const utcStr = isoStr.includes('T') ? isoStr : isoStr.replace(' ','T');
+    const utcWithZ = utcStr.endsWith('Z') || utcStr.includes('+') ? utcStr : utcStr + 'Z';
+    const now  = new Date();                  // current UTC moment
+    const then = new Date(utcWithZ);          // stored UTC moment
+    const diffMs = now - then;
+    if(diffMs < 0) return {label:'Just now', hours:0, cls:'normal'};
+    const totalMins = Math.floor(diffMs / 60000);
+    const hours = Math.floor(totalMins / 60);
+    const mins  = totalMins % 60;
+    const days  = Math.floor(hours / 24);
+    let label, cls;
+    if(totalMins < 1)  {label='Just now';                    cls='normal'}
+    else if(hours < 1) {label=mins+'m';                      cls='normal'}
+    else if(hours < 24){label=hours+'h '+(mins>0?mins+'m':''); cls='normal'}
+    else if(days < 3)  {label=days+'d '+Math.floor(hours%24)+'h'; cls='warning'}
+    else               {label=days+' days';                  cls='urgent'}
+    return{label, hours, cls};
+  }catch(e){return{label:'?',hours:0,cls:'normal'}}
 }
 
 function renderPendingTime(){
