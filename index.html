@@ -379,7 +379,7 @@ tr:hover td{background:#f8fff8}
     <!-- Analytics -->
     <div class="card">
       <div class="ch">
-        <span class="ct">📊 Monthly Analysis</span>
+        <span class="ct">📊 Monthly Analytics</span>
         <div style="display:flex;align-items:center;gap:8px">
           <select class="month-select" id="month-select" onchange="renderAnalytics()"></select>
           <button class="btn" onclick="renderAnalytics()">↻</button>
@@ -394,7 +394,7 @@ tr:hover td{background:#f8fff8}
         </div>
         <div class="analytics-grid">
           <div class="chart-card"><div class="chart-title">Invoice Status Distribution</div><canvas id="status-chart" height="200"></canvas></div>
-          <div class="chart-card"><div class="chart-title">Amount by Category (AED)</div><canvas id="cat-chart" height="200"></canvas></div>
+
 
         </div>
       </div>
@@ -484,7 +484,7 @@ function addTxn(type,amount,label,invoiceId,invoiceNo,balAfter){
   if(txns.length>500)txns.pop();
   saveTxns(txns);
 }
-let sCh=null,cCh=null;
+let sCh=null;
 
 setInterval(()=>{const t=new Date().toLocaleTimeString('en-GB');['u-clk','m-clk'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=t})},1000);
 
@@ -872,9 +872,7 @@ function renderAnalytics(){
   const catMap={};
   app.forEach(r=>{const c=r.category||'Other';catMap[c]=(catMap[c]||0)+parseFloat(r.total_amount||0)});
   const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
-  const cc=document.getElementById('cat-chart').getContext('2d');
-  if(cCh)cCh.destroy();
-  cCh=new Chart(cc,{type:'bar',data:{labels:cats.map(c=>c[0]),datasets:[{label:'AED',data:cats.map(c=>parseFloat(c[1]).toFixed(2)),backgroundColor:['#1a472a','#2d6a4f','#52b788','#95e4b3','#d8f3dc','#b7e4c7','#74c69d'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+
 
 }
 // Upload
