@@ -231,12 +231,14 @@ tr:hover td{background:#f8fff8}
 <!-- USER PORTAL -->
 <div class="page" id="user-page">
   <nav>
-    <div class="brand">🌿 Al Islami Foods <span>User Portal</span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="nav-back" onclick="goLanding()">← Home</button>
+      <div class="brand">🌿 Al Islami Foods <span>User Portal</span></div>
+    </div>
     <div class="nav-right">
       <span class="dot" id="u-dot"></span>
       <span class="nav-tag" id="u-srv">Connecting...</span>
       <span class="nav-tag" id="u-clk"></span>
-      <button class="nav-back" onclick="goLanding()">← Home</button>
     </div>
   </nav>
   <div class="wrap">
@@ -300,8 +302,8 @@ tr:hover td{background:#f8fff8}
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th></tr></thead>
-          <tbody id="u-tbody"><tr><td colspan="9"><div class="empty">⏳ Loading...</div></td></tr></tbody>
+          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Submitter</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th></tr></thead>
+          <tbody id="u-tbody"><tr><td colspan="10"><div class="empty">⏳ Loading...</div></td></tr></tbody>
         </table>
       </div>
       <div style="padding:6px 18px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between">
@@ -314,12 +316,14 @@ tr:hover td{background:#f8fff8}
 <!-- MANAGER PORTAL -->
 <div class="page" id="mgr-page">
   <nav>
-    <div class="brand">🌿 Al Islami Foods <span>Manager Portal</span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="nav-back" onclick="goLanding()">← Home</button>
+      <div class="brand">🌿 Al Islami Foods <span>Manager Portal</span></div>
+    </div>
     <div class="nav-right">
       <span class="dot" id="m-dot"></span>
       <span class="nav-tag" id="m-srv">Connecting...</span>
       <span class="nav-tag" id="m-clk"></span>
-      <button class="nav-back" onclick="goLanding()">← Home</button>
     </div>
   </nav>
   <div class="wrap">
@@ -486,11 +490,11 @@ function updateMStats(){document.getElementById('m-st').textContent=allRecs.leng
 function renderU(){
   const rows=filterR(uFV).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   document.getElementById('u-cnt').textContent='Showing '+rows.length+' of '+allRecs.length;
-  if(!rows.length){document.getElementById('u-tbody').innerHTML='<tr><td colspan="9"><div class="empty">📭 No invoices</div></td></tr>';return}
+  if(!rows.length){document.getElementById('u-tbody').innerHTML='<tr><td colspan="10"><div class="empty">📭 No invoices</div></td></tr>';return}
   document.getElementById('u-tbody').innerHTML=rows.map(r=>{
     const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
     const cr=toDubai(r.created_at);
-    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
+    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td style="color:var(--muted);font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
   }).join('');
 }
 function renderM(){
