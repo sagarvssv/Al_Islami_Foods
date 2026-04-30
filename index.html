@@ -329,8 +329,8 @@ tr:hover td{background:#f8fff8}
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Submitter</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th></tr></thead>
-          <tbody id="u-tbody"><tr><td colspan="10"><div class="empty">⏳ Loading...</div></td></tr></tbody>
+          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Category</th><th>Submitter</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th></tr></thead>
+          <tbody id="u-tbody"><tr><td colspan="12"><div class="empty">⏳ Loading...</div></td></tr></tbody>
         </table>
       </div>
       <div style="padding:6px 18px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between">
@@ -446,7 +446,7 @@ tr:hover td{background:#f8fff8}
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Submitter</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th><th>Action</th></tr></thead>
+          <thead><tr><th>ID</th><th>Vendor</th><th>Invoice No</th><th>Amount</th><th>Category</th><th>Submitter</th><th>Status</th><th>Fin Mgr</th><th>Manager</th><th>Rejection Reason</th><th>Submitted</th><th>Action</th></tr></thead>
           <tbody id="m-tbody"><tr><td colspan="11"><div class="empty">⏳ Loading...</div></td></tr></tbody>
         </table>
       </div>
@@ -595,11 +595,11 @@ function updateMStats(){document.getElementById('m-st').textContent=allRecs.leng
 function renderU(){
   const rows=filterR(uFV).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   document.getElementById('u-cnt').textContent='Showing '+rows.length+' of '+allRecs.length;
-  if(!rows.length){document.getElementById('u-tbody').innerHTML='<tr><td colspan="10"><div class="empty">📭 No invoices</div></td></tr>';return}
+  if(!rows.length){document.getElementById('u-tbody').innerHTML='<tr><td colspan="12"><div class="empty">📭 No invoices</div></td></tr>';return}
   document.getElementById('u-tbody').innerHTML=rows.map(r=>{
     const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
     const cr=toDubai(r.created_at);
-    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td style="color:var(--muted);font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
+    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
   }).join('');
 }
 function renderM(){
@@ -612,7 +612,7 @@ function renderM(){
     const s=getS(r);
     const canRev=['FULLY_APPROVED','REJECTED','AWAITING_MANAGER2','APPROVED'].includes(s);
     const revBtn=canRev?`<button class="btn btn-danger" style="font-size:10px;padding:3px 8px" onclick="reverseInvoice('${r.invoice_id}','${s}')">↩ Reverse</button>`:'—';
-    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
+    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
   }).join('');
 }
 function populateCatMonths(){
