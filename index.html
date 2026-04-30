@@ -742,7 +742,7 @@ function renderCatDashboard(){
 
   if(!cats.length){
     el.innerHTML='<div style="margin-bottom:12px;font-size:12px;color:var(--muted)">No approved invoices this month:</div>'+
-      ALL_CATS.map((cat,i)=>`<div style="background:var(--light);border-radius:10px;padding:11px 14px;border-left:4px solid ${CAT_COLORS[cat]};margin-bottom:7px;display:flex;align-items:center;gap:10px;opacity:0.6">
+      ALL_CATS.map((cat,i)=>`<div style="background:var(--light);border-radius:10px;padding:11px 14px;border-left:4px solid ${CAT_COLORS[cat]||'#ccc'};margin-bottom:7px;display:flex;align-items:center;gap:10px;opacity:0.6">
         <span style="font-size:18px">${CAT_ICONS[cat]}</span>
         <span style="font-size:12px;font-weight:600">${cat}</span>
         <span style="margin-left:auto;font-size:11px;color:var(--muted)">AED 0.00 — 0%</span>
@@ -751,7 +751,19 @@ function renderCatDashboard(){
   }
 
   // Color palette
-  const CAT_COLORS={'Food & Beverages':'#e67e22','Stationery':'#2980b9','Petrol':'#c0392b','Electronics':'#8e44ad','Others':'#7f8c8d'};
+  const CAT_COLORS={
+    'Food & Beverage'    : '#e67e22',
+    'Office Supplies'    : '#2980b9',
+    'Transport'          : '#c0392b',
+    'Utilities'          : '#16a085',
+    'Maintenance'        : '#8e44ad',
+    'IT & Technology'    : '#2471a3',
+    'Marketing'          : '#d35400',
+    'HR & Recruitment'   : '#1a5276',
+    'Legal & Professional': '#6d4c41',
+    'Travel'             : '#27ae60',
+    'Other'              : '#7f8c8d',
+  };
 
   const CAT_ICONS={'Food & Beverages':'🍽️','Stationery':'📎','Petrol':'⛽','Electronics':'💻','Others':'📦'};
   const colors=['#e67e22','#2980b9','#c0392b','#8e44ad','#7f8c8d'];
@@ -772,7 +784,7 @@ function renderCatDashboard(){
       ${cats.map((c,i)=>{
         const [cat,data]=c;
         const pct=totalAED>0?(data.aed/totalAED*100):0;
-        const col=CAT_COLORS[cat]||colors[i%colors.length];
+        const col=CAT_COLORS[cat]||['#e67e22','#c0392b','#2980b9','#16a085','#8e44ad','#d35400','#27ae60','#1a5276','#6d4c41','#2471a3','#7f8c8d'][i%11];
         return`<div style="background:var(--light);border-radius:10px;padding:14px 16px;border-left:4px solid ${col}">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="display:flex;align-items:center;gap:8px">
@@ -810,7 +822,7 @@ function renderCatDashboard(){
         labels:cats.map(c=>c[0]),
         datasets:[{
           data:cats.map(c=>c[1].aed.toFixed(2)),
-          backgroundColor:cats.map((c)=>CAT_COLORS[c[0]]||'#7f8c8d'),
+          backgroundColor:cats.map((c,i)=>CAT_COLORS[c[0]]||['#e67e22','#c0392b','#2980b9','#16a085','#8e44ad','#d35400','#27ae60','#1a5276','#6d4c41','#2471a3','#7f8c8d'][i%11]),
           borderWidth:2,borderColor:'#fff'
         }]
       },
