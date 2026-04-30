@@ -151,6 +151,25 @@ tr:hover td{background:#f8fff8}
 .analytics-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .month-select{padding:5px 9px;border:1px solid var(--border);border-radius:5px;font-size:12px;outline:none}
 .month-select:focus{border-color:var(--g2)}
+/* PENDING TIME TRACKER */
+.pending-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border-radius:8px;margin-bottom:8px;border-left:4px solid #e67e22;background:var(--light)}
+.pending-item.urgent{border-left-color:var(--red);background:#fff5f5}
+.pending-item.warning{border-left-color:#e67e22;background:#fff8f0}
+.pending-item.normal{border-left-color:#2980b9;background:#f0f7ff}
+.pending-time-badge{min-width:80px;text-align:center;padding:6px 10px;border-radius:8px;
+  font-weight:800;font-size:13px;flex-shrink:0}
+.pending-time-badge.urgent{background:#fde;color:var(--red)}
+.pending-time-badge.warning{background:#fff3cd;color:#856404}
+.pending-time-badge.normal{background:#d1ecf1;color:#0c5460}
+.pending-info{flex:1;min-width:0}
+.pending-id{font-size:11px;font-family:monospace;font-weight:700;color:var(--g1)}
+.pending-vendor{font-size:12px;font-weight:600;color:var(--text);margin:2px 0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pending-meta{font-size:10px;color:var(--muted)}
+.pending-stage{flex-shrink:0}
+.pending-empty{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+
 /* TRANSACTION HISTORY */
 .txn-list{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto}
 .txn-item{display:flex;align-items:center;gap:12px;padding:10px 14px;
@@ -399,6 +418,22 @@ tr:hover td{background:#f8fff8}
         </div>
       </div>
     </div>
+    <!-- Pending Approval Time Tracker -->
+    <div class="card">
+      <div class="ch">
+        <span class="ct">⏱️ Pending Approval Time</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="pending-count-label" style="font-size:11px;color:var(--muted)"></span>
+          <button class="btn" onclick="renderPendingTime()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="cb" style="padding:12px 16px">
+        <div id="pending-time-list">
+          <div class="empty">⏳ Loading...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Category Spend Dashboard -->
     <div class="card">
       <div class="ch">
@@ -501,7 +536,7 @@ function checkPwd(){
     document.getElementById('pwd-err').style.display='none';
     document.getElementById('landing').style.display='none';
     document.getElementById('mgr-page').classList.add('active');
-    updateBalUI();loadRecs();populateMonths();populateCatMonths();setTimeout(renderAnalytics,600);setTimeout(renderCatDashboard,700);
+    updateBalUI();loadRecs();populateMonths();populateCatMonths();setTimeout(renderAnalytics,600);setTimeout(renderCatDashboard,700);setTimeout(renderPendingTime,500);
   }else{
     const i=document.getElementById('pwd-input');
     i.classList.add('err');document.getElementById('pwd-err').style.display='block';
@@ -575,7 +610,7 @@ async function loadRecs(silent=true){
     ['u-ref','m-ref'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=ts});
     if(!silent)toast(allRecs.length+' records loaded');
   if(document.getElementById('mgr-page').classList.contains('active')){
-    populateCatMonths();renderCatDashboard();
+    populateCatMonths();renderCatDashboard();renderPendingTime();
   }
   }catch{
     setSrv(false);
@@ -768,6 +803,71 @@ function renderCatDashboard(){
         plugins:{legend:{position:'right',labels:{font:{size:9},boxWidth:10}}}}
     });
   },100);
+}
+
+function timeDiff(isoStr){
+  if(!isoStr) return {label:'Unknown',hours:0,cls:'normal'};
+  try{
+    const now=new Date();
+    const then=new Date(isoStr.includes('T')?isoStr:isoStr.replace(' ','T')+'Z');
+    const diffMs=now-then;
+    const hours=Math.floor(diffMs/3600000);
+    const days=Math.floor(hours/24);
+    const mins=Math.floor((diffMs%3600000)/60000);
+    let label,cls;
+    if(hours<1)       {label=mins+'m';           cls='normal'}
+    else if(hours<24) {label=hours+'h '+Math.floor((diffMs%3600000)/60000)+'m'; cls='normal'}
+    else if(days<3)   {label=days+'d '+Math.floor(hours%24)+'h';               cls='warning'}
+    else              {label=days+' days';                                       cls='urgent'}
+    return{label,hours,cls};
+  }catch{return{label:'?',hours:0,cls:'normal'}}
+}
+
+function renderPendingTime(){
+  const el=document.getElementById('pending-time-list');
+  const lbl=document.getElementById('pending-count-label');
+  if(!el) return;
+
+  // Get all pending invoices (PENDING + AWAITING_MANAGER2)
+  const pending=allRecs
+    .filter(r=>['PENDING','AWAITING_MANAGER2'].includes(r.status||''))
+    .map(r=>{
+      const diff=timeDiff(r.created_at);
+      return{...r,_diff:diff};
+    })
+    .sort((a,b)=>b._diff.hours-a._diff.hours); // longest waiting first
+
+  if(lbl) lbl.textContent=pending.length+' invoice'+(pending.length!==1?'s':'')+' pending';
+
+  if(!pending.length){
+    el.innerHTML='<div class="pending-empty">✅ No pending invoices — all caught up!</div>';
+    return;
+  }
+
+  el.innerHTML=pending.map(r=>{
+    const diff=r._diff;
+    const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
+    const stage=r.status==='AWAITING_MANAGER2'
+      ?'<span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">Awaiting Manager 2</span>'
+      :'<span style="background:#d1ecf1;color:#0c5460;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">Awaiting Fin. Manager</span>';
+    const invNo=r.invoice_number?`No: ${r.invoice_number} · `:'';
+    const sub=r.submitter_email?`Submitted by: ${r.submitter_email}`:'';
+    const urgentNote=diff.cls==='urgent'
+      ?'<span style="color:var(--red);font-weight:700;font-size:10px"> ⚠️ Action needed!</span>':'';
+    return`<div class="pending-item ${diff.cls}">
+      <div class="pending-time-badge ${diff.cls}">${diff.label}</div>
+      <div class="pending-info">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+          <span class="pending-id">${r.invoice_id||'—'}</span>
+          ${stage}
+          ${urgentNote}
+        </div>
+        <div class="pending-vendor">${r.vendor_name||'Unknown Vendor'}</div>
+        <div class="pending-meta">${invNo}${amt} · ${toDubai(r.created_at)}</div>
+        ${sub?`<div class="pending-meta">${sub}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function toDubaiShort(isoStr){
