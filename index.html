@@ -357,9 +357,11 @@ tr:hover td{background:#f8fff8}
     <!-- Balance -->
     <div class="balance-card">
       <div>
-        <div class="bal-label">💰 Petty Cash Balance</div>
-        <div class="bal-amount" id="bal-amount">AED 5,000.00</div>
-        <div class="bal-sub" id="bal-sub">Available this period</div>
+        <div class="bal-label">💰 Petty Cash Remaining</div>
+        <div class="bal-amount" id="bal-remaining">AED 5,000.00</div>
+        <div class="bal-label" style="margin-top:10px;color:rgba(255,255,255,0.5)">Total Petty Cash Budget</div>
+        <div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.75)" id="bal-amount">AED 5,000.00</div>
+        <div class="bal-sub" id="bal-sub">Approved spend this period</div>
       </div>
       <div class="bal-actions">
         <button class="bal-btn bal-add" onclick="openAmtModal('add')">+ Add Cash</button>
@@ -507,9 +509,17 @@ function checkPwd(){
   }
 }
 function updateBalUI(){
-  document.getElementById('bal-amount').textContent='AED '+cash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const spent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED').reduce((s,r)=>s+toAED(r.total_amount,r.currency),0);
-  document.getElementById('bal-sub').textContent=`Approved spend (AED): ${spent.toFixed(2)} | Remaining: ${(cash-spent).toFixed(2)}`;
+  const remaining=cash-spent;
+  // Total budget
+  const cashEl=document.getElementById('bal-amount');
+  if(cashEl) cashEl.textContent='AED '+cash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  // Remaining (prominent)
+  const remEl=document.getElementById('bal-remaining');
+  if(remEl) remEl.textContent='AED '+remaining.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  // Sub text
+  const subEl=document.getElementById('bal-sub');
+  if(subEl) subEl.textContent=`AED ${spent.toFixed(2)} approved spend this period`;
   renderTxnHistory();
 }
 function openAmtModal(mode){
@@ -864,7 +874,7 @@ function renderAnalytics(){
   const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
   const cc=document.getElementById('cat-chart').getContext('2d');
   if(cCh)cCh.destroy();
-  cCh=new Chart(cc,{type:'bar',data:{labels:cats.map(c=>c[0]),datasets:[{label:'AED',data:cats.map(c=>c[1].toFixed(0)),backgroundColor:['#1a472a','#2d6a4f','#52b788','#95e4b3','#d8f3dc','#b7e4c7','#74c69d'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+  cCh=new Chart(cc,{type:'bar',data:{labels:cats.map(c=>c[0]),datasets:[{label:'AED',data:cats.map(c=>parseFloat(c[1]).toFixed(2)),backgroundColor:['#1a472a','#2d6a4f','#52b788','#95e4b3','#d8f3dc','#b7e4c7','#74c69d'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
 
 }
 // Upload

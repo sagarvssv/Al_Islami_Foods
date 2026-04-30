@@ -72,7 +72,8 @@ def send_approval_request_email(invoice: dict, invoice_id: str, level: int,
         vendor  = invoice.get('vendor_name', 'Unknown')
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
-        inv_num = invoice.get('invoice_number', 'N/A')
+        inv_num_raw = (invoice.get('invoice_number') or '').strip()
+        inv_num     = inv_num_raw if inv_num_raw else '⚠️ Not mentioned — possible duplicate'
         date    = invoice.get('invoice_date', 'N/A')
         s3_key  = invoice.get('s3_key', '')
         items   = invoice.get('line_items', [])
@@ -231,9 +232,10 @@ def send_submitter_notification(submitter_email: str, invoice: dict,
         vendor  = invoice.get('vendor_name', 'Unknown')
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
-        inv_num = invoice.get('invoice_number', 'N/A')
-        date    = invoice.get('invoice_date', 'N/A')
-        cat     = invoice.get('category', 'Other')
+        inv_num_raw = (invoice.get('invoice_number') or '').strip()
+        inv_num     = inv_num_raw if inv_num_raw else '⚠️ Not mentioned — possible duplicate'
+        date        = invoice.get('invoice_date', 'N/A')
+        cat         = invoice.get('category', 'Other')
 
         is_approved = 'APPROVED' in status
         color   = '#28a745' if is_approved else '#dc3545'
@@ -343,8 +345,9 @@ def send_rejection_notification(submitter_email: str, invoice: dict,
         vendor = invoice.get('vendor_name', 'Unknown')
         amount = invoice.get('total_amount', 0)
         curr   = invoice.get('currency', 'AED')
-        inv_num = invoice.get('invoice_number', 'N/A')
-        date   = invoice.get('invoice_date', 'N/A')
+        inv_num_raw = (invoice.get('invoice_number') or '').strip()
+        inv_num     = inv_num_raw if inv_num_raw else '⚠️ Not mentioned — possible duplicate'
+        date        = invoice.get('invoice_date', 'N/A')
 
         reason_labels = {
             'duplicate'      : 'Duplicate Invoice',
