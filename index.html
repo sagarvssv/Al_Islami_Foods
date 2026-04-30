@@ -230,7 +230,7 @@ tr:hover td{background:#f8fff8}
     </div>
     <div class="card">
       <div class="ch">
-        <span class="ct">📋 My Submissions</span>
+        <span class="ct">📋 Invoices</span>
         <div style="display:flex;align-items:center;gap:7px">
           <div class="ftabs">
             <span class="ftab on" onclick="uFilter('ALL')">All</span>
@@ -414,6 +414,17 @@ function mFilter(f){mFV=f;document.querySelectorAll('#mgr-page .ftab').forEach(e
 function sBadge(r){const s=getS(r);const m={'FULLY_APPROVED':'badge bfull','AWAITING_MANAGER2':'badge bawm','REJECTED':'badge br','PENDING':'badge bp','APPROVED':'badge ba'};const l={'FULLY_APPROVED':'✅ FULLY APPROVED','AWAITING_MANAGER2':'⏳ AWAITING MGR2','REJECTED':'❌ REJECTED','PENDING':'PENDING','APPROVED':'APPROVED'};return`<span class="${m[s]||'badge bp'}">${l[s]||s}</span>`}
 function aBadge(v){if(!v||v==='—')return'<span class="badge bw">—</span>';const m={PENDING:'badge bp',WAITING:'badge bw',APPROVED:'badge bfa',REJECTED:'badge br'};return`<span class="${m[v]||'badge bw'}">${v}</span>`}
 function rCell(r){if(!r.rejection_reason)return'—';const L={duplicate:'🔁 Dup',missing_info:'📋 Missing',over_budget:'💰 Budget',not_approved:'🚫 Not Approved',wrong_category:'🏷️ Category',policy:'📜 Policy',other:'✍️ Other'};return`<span style="color:var(--red);font-weight:600">${L[r.rejection_reason]||r.rejection_reason}</span>${r.rejection_notes?'<br><span style="color:#495057;font-size:9px">'+r.rejection_notes+'</span>':''}`}
+function toDubai(utcStr){
+  if(!utcStr) return '—';
+  try{
+    const d = new Date(utcStr.replace('T',' ')+'Z');
+    return d.toLocaleString('en-GB',{
+      timeZone:'Asia/Dubai',
+      day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:false
+    }).replace(',','');
+  }catch(e){return utcStr.substring(0,16).replace('T',' ')}
+}
 function updateUStats(){document.getElementById('u-st').textContent=allRecs.length;document.getElementById('u-sp').textContent=allRecs.filter(r=>r.status==='PENDING').length;document.getElementById('u-sa').textContent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED').length;document.getElementById('u-sr').textContent=allRecs.filter(r=>getS(r)==='REJECTED').length;document.getElementById('u-am2').textContent=allRecs.filter(r=>r.status==='AWAITING_MANAGER2').length}
 function updateMStats(){document.getElementById('m-st').textContent=allRecs.length;document.getElementById('m-sp').textContent=allRecs.filter(r=>r.status==='PENDING').length;document.getElementById('m-sa').textContent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED').length;document.getElementById('m-sr').textContent=allRecs.filter(r=>getS(r)==='REJECTED').length}
 function renderU(){
@@ -422,7 +433,7 @@ function renderU(){
   if(!rows.length){document.getElementById('u-tbody').innerHTML='<tr><td colspan="9"><div class="empty">📭 No invoices</div></td></tr>';return}
   document.getElementById('u-tbody').innerHTML=rows.map(r=>{
     const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
-    const cr=(r.created_at||'').substring(0,16).replace('T',' ');
+    const cr=toDubai(r.created_at);
     return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
   }).join('');
 }
@@ -432,7 +443,7 @@ function renderM(){
   if(!rows.length){document.getElementById('m-tbody').innerHTML='<tr><td colspan="11"><div class="empty">📭 No invoices</div></td></tr>';return}
   document.getElementById('m-tbody').innerHTML=rows.map(r=>{
     const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
-    const cr=(r.created_at||'').substring(0,16).replace('T',' ');
+    const cr=toDubai(r.created_at);
     const s=getS(r);
     const canRev=['FULLY_APPROVED','REJECTED','AWAITING_MANAGER2','APPROVED'].includes(s);
     const revBtn=canRev?`<button class="btn btn-danger" style="font-size:10px;padding:3px 8px" onclick="reverseInvoice('${r.invoice_id}','${s}')">↩ Reverse</button>`:'—';
@@ -554,7 +565,11 @@ function updSummary(){
   document.getElementById('summary-box').classList.add('show');
   document.getElementById('sum-total').textContent=fileQueue.length;document.getElementById('sum-ok').textContent=ok;document.getElementById('sum-dup').textContent=dup;document.getElementById('sum-err').textContent=err;
 }
-loadRecs(true);setInterval(()=>loadRecs(true),15000);
+loadRecs(true);
+setInterval(()=>{
+  // Skip auto-refresh while uploads are being processed
+  if(!processing) loadRecs(true);
+},15000);
 </script>
 </body>
 </html>
