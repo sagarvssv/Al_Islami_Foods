@@ -92,6 +92,28 @@ padding:14px 18px;margin:16px 0">
 <p style="margin:6px 0 0;color:#cc0000;font-size:12px">Please review carefully before approving.</p>
 </div>"""
 
+        # Build manual verification banner if vendor or amount is missing
+        vendor_missing = not vendor or vendor in ['Unknown', 'Unknown Vendor', '']
+        amount_missing = not amount or float(str(amount).replace(',','') or 0) <= 0
+        verify_banner  = ''
+        if vendor_missing or amount_missing:
+            missing_fields = []
+            if vendor_missing: missing_fields.append('Vendor Name')
+            if amount_missing: missing_fields.append('Invoice Amount')
+            missing_str = ' and '.join(missing_fields)
+            verify_banner = f"""<div style="background:#fff8e1;border:2px solid #f59e0b;border-radius:8px;
+padding:14px 18px;margin:16px 0">
+<p style="margin:0;color:#b45309;font-size:14px;font-weight:700">⚠️ MANUAL VERIFICATION REQUIRED</p>
+<p style="margin:6px 0 4px;color:#92400e;font-size:13px">
+  The following could not be automatically extracted from this invoice:
+  <strong>{missing_str}</strong>
+</p>
+<p style="margin:0;color:#92400e;font-size:12px">
+  Please open the original invoice file in S3, verify the details manually,
+  and only approve if the invoice is legitimate and complete.
+</p>
+</div>"""
+
         line_rows = ''
         if isinstance(items, list):
             for i, item in enumerate(items[:10]):
@@ -128,6 +150,7 @@ padding:14px 18px;margin:16px 0">
   </tr>
   <tr><td style="padding:24px 32px">
     {dup_banner}
+    {verify_banner}
     <table width="100%" cellpadding="0" cellspacing="0"
            style="background:#f8f9fa;border-radius:8px;overflow:hidden;margin-bottom:20px">
       <tr style="background:#e9ecef">
@@ -182,6 +205,7 @@ padding:14px 18px;margin:16px 0">
 Al Islami Foods — Petty Cash {level_badge}
 You are: {level_label}
 {'*** DUPLICATE INVOICE WARNING ***' if is_duplicate else ''}
+{'*** MANUAL VERIFICATION REQUIRED: ' + missing_str + ' could not be extracted — please check the original invoice ***' if verify_banner else ''}
 ============================================
 Vendor     : {vendor}
 Invoice No : {inv_num}
