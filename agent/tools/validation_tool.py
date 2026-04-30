@@ -1,30 +1,26 @@
-import os
-
-code = """import re
+import re
 from datetime import datetime
 
 
 def validate_invoice(invoice: dict) -> dict:
-    \"\"\"
+    """
     Validate extracted invoice data.
     Lenient validation — only hard-fail if absolutely no useful data extracted.
     Arabic/handwritten invoices may have partial data which is still valid.
-    \"\"\"
+    """
     errors  = []
     cleaned = dict(invoice)
 
     # ── Vendor name ────────────────────────────────────────────────────────
     vendor = (invoice.get('vendor_name') or '').strip()
     if not vendor or vendor.lower() in ['unknown', 'n/a', 'none', '']:
-        # Don't reject — use placeholder, warn instead
         cleaned['vendor_name'] = 'Unknown Vendor'
         print("  WARNING: Vendor name missing — using 'Unknown Vendor'")
-    
+
     # ── Amount ─────────────────────────────────────────────────────────────
     try:
         amount = float(str(invoice.get('total_amount') or 0).replace(',',''))
         if amount <= 0:
-            # Try to find amount from line items
             items = invoice.get('line_items', [])
             if isinstance(items, list) and items:
                 calc = sum(float(str(i.get('total',0)).replace(',','')) for i in items if i.get('total'))
@@ -47,16 +43,12 @@ def validate_invoice(invoice: dict) -> dict:
     currency = (invoice.get('currency') or 'AED').strip().upper()
     valid_currencies = ['AED','USD','EUR','GBP','SAR','INR','QAR','KWD','BHD','OMR',
                         'PKR','EGP','JOD','CNY','JPY','LBP','TRY','MAD','LYD']
-    if currency not in valid_currencies:
-        cleaned['currency'] = 'AED'
-    else:
-        cleaned['currency'] = currency
+    cleaned['currency'] = currency if currency in valid_currencies else 'AED'
 
     # ── Invoice date ───────────────────────────────────────────────────────
     date_str = (invoice.get('invoice_date') or '').strip()
     if date_str:
         try:
-            # Validate date format
             datetime.strptime(date_str, '%Y-%m-%d')
             cleaned['invoice_date'] = date_str
         except ValueError:
@@ -65,17 +57,12 @@ def validate_invoice(invoice: dict) -> dict:
     else:
         cleaned['invoice_date'] = ''
 
-    # ── Category ───────────────────────────────────────────────────────────
-    valid_cats = [
-        'Food & Beverage','Office Supplies','Transport','Utilities',
-        'Maintenance','IT & Technology','Marketing','HR & Recruitment',
-        'Legal & Professional','Travel','Other'
-    ]
+    # ── Category — enforce 5 specific categories ───────────────────────────
+    valid_cats = ['Food & Beverages', 'Stationery', 'Petrol', 'Electronics', 'Others']
     if invoice.get('category') not in valid_cats:
-        cleaned['category'] = 'Other'
+        cleaned['category'] = 'Others'
 
-    # ── Only hard-fail if we have absolutely nothing useful ────────────────
-    # An invoice needs at least SOMETHING identifiable
+    # ── Only hard-fail if absolutely nothing extracted ─────────────────────
     has_vendor  = cleaned.get('vendor_name','') not in ['','Unknown Vendor']
     has_amount  = float(cleaned.get('total_amount', 0)) > 0
     has_inv_num = bool((cleaned.get('invoice_number') or '').strip())
@@ -90,16 +77,5 @@ def validate_invoice(invoice: dict) -> dict:
 
     print(f"  Validation PASSED: {cleaned.get('vendor_name','?')} | "
           f"{cleaned.get('total_amount',0)} {cleaned.get('currency','AED')} | "
-          f"{cleaned.get('category','Other')}")
+          f"{cleaned.get('category','Others')}")
     return {'valid': True, 'errors': [], 'invoice': cleaned}
-"""
-
-os.makedirs('agent/tools', exist_ok=True)
-with open('agent/tools/validation_tool.py', 'w', encoding='utf-8') as f:
-    f.write(code)
-print("Written: agent/tools/validation_tool.py")
-
-import subprocess
-r = subprocess.run(['python', '-m', 'py_compile', 'agent/tools/validation_tool.py'],
-                   capture_output=True, text=True)
-print("Syntax:", "OK" if r.returncode == 0 else r.stderr)

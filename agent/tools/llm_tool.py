@@ -34,7 +34,7 @@ Return ONLY valid JSON with these exact fields:
   "total_amount": number,
   "currency": "AED or USD or SAR or EUR or INR etc",
   "tax_amount": number,
-  "category": "one of: Food & Beverage, Office Supplies, Transport, Utilities, Maintenance, IT & Technology, Marketing, HR & Recruitment, Legal & Professional, Travel, Other",
+  "category": "one of: Food & Beverages, Stationery, Petrol, Electronics, Others",
   "payment_method": "string",
   "line_items": [{"description": "string", "qty": number, "unit_price": number, "total": number}],
   "notes": "string",
@@ -42,16 +42,11 @@ Return ONLY valid JSON with these exact fields:
 }
 
 Category selection guide:
-- Food & Beverage: restaurants, catering, groceries, food supplies
-- Transport: fuel, vehicle, delivery, logistics, shipping
-- Utilities: electricity, water, internet, phone, gas
-- Office Supplies: stationery, printing, cleaning, office items
-- Maintenance: repairs, renovation, facilities, equipment service
-- IT & Technology: software, hardware, computers, tech services
-- Marketing: advertising, promotions, events, media
-- Travel: hotels, flights, accommodation, travel expenses
-- HR & Recruitment: salaries, training, recruitment
-- Legal & Professional: legal fees, accounting, consulting
+- Food & Beverages: restaurants, catering, groceries, food supplies, meals, dining
+- Stationery: pens, paper, printing, office supplies, notebooks, files, cleaning items
+- Petrol: fuel, petrol, diesel, gas station, vehicle fuel, oil
+- Electronics: computers, phones, tablets, cables, chargers, hardware, IT equipment, software
+- Others: anything that does not fit above — utilities, travel, maintenance, repairs, salaries, legal fees
 
 If a field is not found, use null for numbers and empty string "" for strings.
 Return ONLY the JSON object — no markdown, no explanation."""
@@ -106,7 +101,7 @@ Return ONLY a valid JSON object with the exact fields specified."""
 
         # Default category
         if not invoice.get('category'):
-            invoice['category'] = 'Other'
+            invoice['category'] = 'Others'
 
         lang = invoice.get('original_language', 'English')
         print(f"  LLM structured: vendor={invoice.get('vendor_name','?')}, "
