@@ -208,7 +208,7 @@ You are: {level_label}
 {'*** MANUAL VERIFICATION REQUIRED: ' + missing_str + ' could not be extracted — please check the original invoice ***' if verify_banner else ''}
 ============================================
 Vendor     : {vendor}
-Invoice No : {inv_num}
+Invoice No : {inv_num_raw if inv_num_raw else '⚠️ Not found — please check manually'}
 Date       : {date}
 Amount     : {amount} {curr}
 ID         : {invoice_id}
@@ -257,7 +257,9 @@ def send_submitter_notification(submitter_email: str, invoice: dict,
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
         inv_num_raw = (invoice.get('invoice_number') or '').strip()
-        inv_num     = inv_num_raw if inv_num_raw else '⚠️ Not mentioned — possible duplicate'
+        if inv_num_raw.lower() in ['unknown', 'n/a', 'none', '-', '--', '']:
+            inv_num_raw = ''
+        inv_num = inv_num_raw if inv_num_raw else '⚠️ Not found — please check manually'
         date        = invoice.get('invoice_date', 'N/A')
         cat         = invoice.get('category', 'Other')
 
@@ -370,7 +372,9 @@ def send_rejection_notification(submitter_email: str, invoice: dict,
         amount = invoice.get('total_amount', 0)
         curr   = invoice.get('currency', 'AED')
         inv_num_raw = (invoice.get('invoice_number') or '').strip()
-        inv_num     = inv_num_raw if inv_num_raw else '⚠️ Not mentioned — possible duplicate'
+        if inv_num_raw.lower() in ['unknown', 'n/a', 'none', '-', '--', '']:
+            inv_num_raw = ''
+        inv_num = inv_num_raw if inv_num_raw else '⚠️ Not found — please check manually'
         date        = invoice.get('invoice_date', 'N/A')
 
         reason_labels = {
@@ -808,7 +812,10 @@ class Handler(BaseHTTPRequestHandler):
         vendor  = invoice.get('vendor_name', 'Unknown')
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
-        inv_num = invoice.get('invoice_number', 'N/A')
+        inv_num_raw2 = (invoice.get('invoice_number') or '').strip()
+        if inv_num_raw2.lower() in ['unknown', 'n/a', 'none', '-', '--', '']:
+            inv_num_raw2 = ''
+        inv_num = inv_num_raw2 if inv_num_raw2 else '⚠️ Not found'
         api_url = APPROVAL_API_URL
 
         html = f"""<!DOCTYPE html>
