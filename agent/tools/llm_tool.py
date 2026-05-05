@@ -18,110 +18,187 @@ def get_session():
 
 SYSTEM_PROMPT = """You are an expert invoice data extraction AI for Al Islami Foods UAE.
 
-You extract structured invoice data from OCR text. The invoice may be:
-- In English
-- In Arabic (عربي) — translate all fields to English
-- Bilingual (Arabic + English)
-
-For Arabic invoices: translate vendor names, descriptions and notes to English.
+Extract structured invoice data from OCR text. The invoice may be in English, Arabic, or both.
 Always return amounts in their ORIGINAL currency — do NOT convert currencies.
 
-Return ONLY valid JSON with these exact fields:
+Return ONLY valid JSON:
 {
-  "vendor_name": "string (translate to English if Arabic)",
+  "vendor_name": "string",
   "invoice_number": "string",
   "invoice_date": "YYYY-MM-DD",
   "total_amount": number,
   "currency": "AED or USD or SAR or EUR or INR etc",
   "tax_amount": number,
-  "category": "one of: Food & Beverages, Stationery, Petrol, Electronics, Others",
+  "category": "one of: Food & Beverage, Office Supplies, Transport, Utilities, Maintenance, IT & Technology, Marketing, HR & Recruitment, Legal & Professional, Travel, Other",
   "payment_method": "string",
   "line_items": [{"description": "string", "qty": number, "unit_price": number, "total": number}],
   "notes": "string",
   "original_language": "English or Arabic or Bilingual"
 }
 
-Category selection guide:
-- Food & Beverages: restaurants, catering, groceries, food supplies, meals, dining
-- Stationery: pens, paper, printing, office supplies, notebooks, files, cleaning items
-- Petrol: fuel, petrol, diesel, gas station, vehicle fuel, oil
-- Electronics: computers, phones, tablets, cables, chargers, hardware, IT equipment, software
-- Others: anything that does not fit above — utilities, travel, maintenance, repairs, salaries, legal fees
+Category guide:
+- Food & Beverage: restaurants, catering, groceries, food
+- Transport: fuel, vehicle, delivery, logistics, shipping
+- Utilities: electricity, water, internet, phone, gas
+- Office Supplies: stationery, printing, cleaning
+- Maintenance: repairs, renovation, facilities
+- IT & Technology: software, hardware, computers
+- Marketing: advertising, promotions, events
+- Travel: hotels, flights, accommodation
+- HR & Recruitment: salaries, training, recruitment
+- Legal & Professional: legal fees, accounting, consulting
 
-If a field is not found, use null for numbers and empty string "" for strings.
 Return ONLY the JSON object — no markdown, no explanation."""
+
+
+def translate_arabic_to_english(text: str) -> str:
+    """
+    Use Amazon Translate to convert Arabic text to English.
+    Called as fallback when Claude fails to extract from Arabic OCR.
+    """
+    try:
+        translate = get_session().client('translate', region_name='eu-central-1')
+        # Split into chunks if too long (Translate limit: 10000 bytes)
+        chunks = [text[i:i+5000] for i in range(0, len(text), 5000)]
+        translated_parts = []
+        for chunk in chunks:
+            if not chunk.strip():
+                continue
+            response = translate.translate_text(
+                Text=chunk,
+                SourceLanguageCode='ar',
+                TargetLanguageCode='en'
+            )
+            translated_parts.append(response['TranslatedText'])
+        result = '\n'.join(translated_parts)
+        print(f"  [Translate] Arabic → English: {len(text)} → {len(result)} chars")
+        return result
+    except Exception as e:
+        print(f"  [Translate] Amazon Translate failed: {e}")
+        return text  # Return original if translate fails
+
+
+def detect_arabic(text: str) -> bool:
+    """Check if text contains significant Arabic content."""
+    arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+    total_chars  = len([c for c in text if c.strip()])
+    return total_chars > 0 and (arabic_chars / max(total_chars, 1)) > 0.1
+
+
+def is_extraction_poor(invoice: dict) -> bool:
+    """Check if Claude's extraction is poor — missing key fields."""
+    vendor  = (invoice.get('vendor_name') or '').strip()
+    amount  = float(str(invoice.get('total_amount') or 0).replace(',', ''))
+    inv_num = (invoice.get('invoice_number') or '').strip()
+    vendor_bad = not vendor or vendor.lower() in ['unknown', 'unknown vendor', 'n/a', '']
+    return vendor_bad and amount <= 0 and not inv_num
+
+
+def call_claude(raw_text: str, is_arabic: bool = False) -> dict:
+    """Call Claude Bedrock to extract invoice data."""
+    client   = get_session().client('bedrock-runtime')
+    model_id = os.getenv('BEDROCK_MODEL_ID', 'eu.anthropic.claude-sonnet-4-5-20250929-v1:0')
+
+    lang_hint = ""
+    if is_arabic:
+        lang_hint = "\nNote: This text may contain Arabic content. Extract all fields and translate to English.\n"
+
+    prompt = f"""Extract all invoice data from the following OCR text.{lang_hint}
+
+OCR TEXT:
+{raw_text[:6000]}
+
+Return ONLY a valid JSON object."""
+
+    response = client.invoke_model(
+        modelId     = model_id,
+        contentType = 'application/json',
+        accept      = 'application/json',
+        body        = json.dumps({
+            'anthropic_version': 'bedrock-2023-05-31',
+            'max_tokens'       : 4096,
+            'system'           : SYSTEM_PROMPT,
+            'messages'         : [{'role': 'user', 'content': prompt}]
+        })
+    )
+
+    body = json.loads(response['body'].read())
+    text = body['content'][0]['text'].strip()
+    text = re.sub(r'^```(?:json)?\s*', '', text)
+    text = re.sub(r'\s*```$', '', text)
+    return json.loads(text.strip())
 
 
 def structure_invoice(raw_text: str) -> dict:
     """
     Use Claude via Bedrock to extract invoice data.
-    Handles English and Arabic invoices.
+    For Arabic invoices with poor extraction, falls back to Amazon Translate.
+
+    Flow:
+    1. Detect if Arabic
+    2. Try Claude directly (handles Arabic natively)
+    3. If extraction poor AND Arabic → use Amazon Translate → retry Claude
+    4. Return best result
     """
-    client   = get_session().client('bedrock-runtime')
-    model_id = os.getenv('BEDROCK_MODEL_ID', 'eu.anthropic.claude-sonnet-4-5-20250929-v1:0')
+    is_arabic = detect_arabic(raw_text)
 
-    prompt = f"""Extract all invoice data from the following OCR text.
-If the invoice is in Arabic, translate all fields to English.
-
-OCR TEXT:
-{raw_text[:6000]}
-
-Return ONLY a valid JSON object with the exact fields specified."""
-
+    if is_arabic:
+        print(f"  Arabic content detected — Claude will extract directly")
+    
+    # ── Step 1: Try Claude directly ─────────────────────────────────────
     try:
-        response = client.invoke_model(
-            modelId     = model_id,
-            contentType = 'application/json',
-            accept      = 'application/json',
-            body        = json.dumps({
-                'anthropic_version': 'bedrock-2023-05-31',
-                'max_tokens'       : 4096,
-                'system'           : SYSTEM_PROMPT,
-                'messages'         : [{'role': 'user', 'content': prompt}]
-            })
-        )
-
-        body = json.loads(response['body'].read())
-        text = body['content'][0]['text'].strip()
-
-        # Strip markdown fences if present
-        text = re.sub(r'^```(?:json)?\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        text = text.strip()
-
-        invoice = json.loads(text)
-
-        # Sanitize numeric fields
+        invoice = call_claude(raw_text, is_arabic=is_arabic)
         invoice['total_amount'] = _safe_float(invoice.get('total_amount', 0))
         invoice['tax_amount']   = _safe_float(invoice.get('tax_amount', 0))
-
-        # Default currency
         if not invoice.get('currency'):
             invoice['currency'] = 'AED'
-
-        # Default category
         if not invoice.get('category'):
-            invoice['category'] = 'Others'
+            invoice['category'] = 'Other'
 
         lang = invoice.get('original_language', 'English')
-        print(f"  LLM structured: vendor={invoice.get('vendor_name','?')}, "
+        print(f"  Claude extracted: vendor={invoice.get('vendor_name','?')}, "
               f"amount={invoice.get('total_amount',0)} {invoice.get('currency','?')}, "
-              f"category={invoice.get('category','?')}, language={lang}")
+              f"lang={lang}")
+
+        # ── Step 2: If Arabic and extraction poor → use Amazon Translate ─
+        if is_arabic and is_extraction_poor(invoice):
+            print(f"  Poor extraction detected — trying Amazon Translate fallback...")
+            try:
+                translated_text = translate_arabic_to_english(raw_text)
+                print(f"  Retrying Claude with translated text...")
+                invoice2 = call_claude(translated_text, is_arabic=False)
+                invoice2['total_amount'] = _safe_float(invoice2.get('total_amount', 0))
+                invoice2['tax_amount']   = _safe_float(invoice2.get('tax_amount', 0))
+                if not invoice2.get('currency'):
+                    invoice2['currency'] = 'AED'
+                if not invoice2.get('category'):
+                    invoice2['category'] = 'Other'
+                invoice2['original_language']   = 'Arabic (translated)'
+                invoice2['translation_used']    = True
+
+                print(f"  Translate+Claude: vendor={invoice2.get('vendor_name','?')}, "
+                      f"amount={invoice2.get('total_amount',0)} {invoice2.get('currency','?')}")
+
+                # Use translated result if it's better
+                if not is_extraction_poor(invoice2):
+                    print(f"  Using Amazon Translate result (better extraction)")
+                    return invoice2
+                else:
+                    print(f"  Translate didn't improve — using original Claude result")
+            except Exception as te:
+                print(f"  Translate fallback error: {te} — using original Claude result")
 
         return invoice
 
     except json.JSONDecodeError as e:
-        print(f"  LLM JSON parse error: {e}")
-        print(f"  Raw text (first 300): {text[:300] if 'text' in dir() else 'N/A'}")
-        raise Exception(f"LLM returned invalid JSON: {e}")
-
+        print(f"  Claude JSON parse error: {e}")
+        raise Exception(f"Claude returned invalid JSON: {e}")
     except Exception as e:
-        print(f"  LLM error: {e}")
+        print(f"  Claude error: {e}")
         raise
 
 
 def _safe_float(val) -> float:
-    """Convert value to float safely."""
     if val is None:
         return 0.0
     try:
