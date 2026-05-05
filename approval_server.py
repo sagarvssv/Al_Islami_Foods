@@ -69,11 +69,15 @@ def send_approval_request_email(invoice: dict, invoice_id: str, level: int,
                                 to_email: str, is_duplicate: bool = False):
     """Send Level 1 or Level 2 approval request email."""
     try:
-        vendor  = invoice.get('vendor_name', 'Unknown')
+        vendor_raw = (invoice.get('vendor_name') or '').strip()
+        vendor = vendor_raw if vendor_raw.lower() not in ['unknown','unknown vendor','n/a','none',''] else ''
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
         inv_num_raw = (invoice.get('invoice_number') or '').strip()
-        inv_num     = inv_num_raw if inv_num_raw else '⚠️ Not mentioned — possible duplicate'
+        # Normalize non-values to empty so missing detection works correctly
+        if inv_num_raw.lower() in ['unknown', 'n/a', 'none', 'null', '-', '--', '']:
+            inv_num_raw = ''
+        inv_num = inv_num_raw if inv_num_raw else '⚠️ Not found — please check manually'
         date    = invoice.get('invoice_date', 'N/A')
         s3_key  = invoice.get('s3_key', '')
         items   = invoice.get('line_items', [])
@@ -93,7 +97,7 @@ padding:14px 18px;margin:16px 0">
 </div>"""
 
         # Detect missing data
-        vendor_missing = not vendor or vendor.lower() in ['unknown', 'unknown vendor', 'n/a', '']
+        vendor_missing = not vendor  # already normalized above
         amount_missing = not amount or float(str(amount).replace(',','') or 0) <= 0
         inv_no_missing = not inv_num_raw
 
@@ -170,7 +174,7 @@ padding:14px 18px;margin:16px 0">
           <td style="padding:8px 16px;font-weight:600;font-size:13px;font-family:monospace">{invoice_id}</td></tr>
       <tr style="background:#fff">
           <td style="padding:8px 16px;color:#6c757d;font-size:13px">Vendor</td>
-          <td style="padding:8px 16px;font-weight:600;font-size:13px">{vendor}</td></tr>
+          <td style="padding:8px 16px;font-size:13px">{'<span style="font-weight:600">' + (vendor_raw or 'Unknown') + '</span>' + ('<span style="color:#e65100;font-size:11px"> ⚠️ Unrecognized vendor</span>' if vendor_missing else '')}</td></tr>
       <tr><td style="padding:8px 16px;color:#6c757d;font-size:13px">Invoice No</td>
           <td style="padding:8px 16px;font-weight:600;font-size:13px">{inv_num}</td></tr>
       <tr style="background:#fff">
