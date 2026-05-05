@@ -439,8 +439,9 @@ tr:hover td{background:#f8fff8}
       <div class="ch">
         <span class="ct">🏷️ Category Spend Dashboard</span>
         <div style="display:flex;align-items:center;gap:8px">
+          <span id="cat-last-updated" style="font-size:10px;color:var(--muted)"></span>
           <select class="month-select" id="cat-month-select" onchange="renderCatDashboard()"></select>
-          <button class="btn" onclick="renderCatDashboard()">↻</button>
+          <button class="btn" onclick="renderCatDashboard()">↻ Refresh</button>
         </div>
       </div>
       <div class="cb">
@@ -610,7 +611,9 @@ async function loadRecs(silent=true){
     ['u-ref','m-ref'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=ts});
     if(!silent)toast(allRecs.length+' records loaded');
   if(document.getElementById('mgr-page').classList.contains('active')){
-    populateCatMonths();renderCatDashboard();renderPendingTime();
+    // Only refresh pending time on auto-refresh (every 15s)
+    // Category dashboard refreshes manually or every 60s separately
+    renderPendingTime();
   }
   }catch{
     setSrv(false);
@@ -706,6 +709,12 @@ function populateCatMonths(){
 }
 
 function renderCatDashboard(){
+  // Update last refreshed timestamp
+  const lbl=document.getElementById('cat-last-updated');
+  if(lbl){
+    const now=new Date();
+    lbl.textContent='Updated '+now.toLocaleTimeString('en-GB',{timeZone:'Asia/Dubai',hour:'2-digit',minute:'2-digit'})+' (Dubai)';
+  }
   const month=document.getElementById('cat-month-select')?.value;
   if(!month)return;
   const el=document.getElementById('cat-dashboard-content');
@@ -734,8 +743,8 @@ function renderCatDashboard(){
     'Maintenance','IT & Technology','Marketing','HR & Recruitment',
     'Legal & Professional','Travel','Other'
   ];
-  ALL_CATS.forEach(c=>{if(!catMap[c])catMap[c]={aed:0,count:0,invoices:[]}});
-  const cats=Object.entries(catMap).sort((a,b)=>b[1].aed-a[1].aed);
+  // Only show categories that have invoices (filter out zeros)
+  const cats=Object.entries(catMap).filter(c=>c[1].count>0).sort((a,b)=>b[1].aed-a[1].aed);
   const totalAED=cats.reduce((s,c)=>s+c[1].aed,0);
   const fxNote=mr.some(r=>(r.currency||'AED').toUpperCase()!=='AED')
     ?'<div style="font-size:10px;color:var(--muted);margin-top:4px">* Non-AED amounts converted at approximate market rates</div>':''
@@ -1080,10 +1089,18 @@ function updSummary(){
   document.getElementById('sum-total').textContent=fileQueue.length;document.getElementById('sum-ok').textContent=ok;document.getElementById('sum-dup').textContent=dup;document.getElementById('sum-err').textContent=err;
 }
 loadRecs(true);
+
+// Records auto-refresh every 15s (skip during upload processing)
 setInterval(()=>{
-  // Skip auto-refresh while uploads are being processed
   if(!processing) loadRecs(true);
-},15000);
+}, 15000);
+
+// Category dashboard auto-refresh every 60s (only when manager portal active)
+setInterval(()=>{
+  if(document.getElementById('mgr-page').classList.contains('active')){
+    renderCatDashboard();
+  }
+}, 60000);
 </script>
 </body>
 </html>
