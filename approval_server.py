@@ -92,26 +92,35 @@ padding:14px 18px;margin:16px 0">
 <p style="margin:6px 0 0;color:#cc0000;font-size:12px">Please review carefully before approving.</p>
 </div>"""
 
-        # Build manual verification banner if vendor or amount is missing
-        vendor_missing = not vendor or vendor in ['Unknown', 'Unknown Vendor', '']
+        # Detect missing data
+        vendor_missing = not vendor or vendor.lower() in ['unknown', 'unknown vendor', 'n/a', '']
         amount_missing = not amount or float(str(amount).replace(',','') or 0) <= 0
-        verify_banner  = ''
-        if vendor_missing or amount_missing:
+        inv_no_missing = not inv_num_raw
+
+        verify_banner = ''
+        if vendor_missing or amount_missing or inv_no_missing:
             missing_fields = []
             if vendor_missing: missing_fields.append('Vendor Name')
             if amount_missing: missing_fields.append('Invoice Amount')
-            missing_str = ' and '.join(missing_fields)
-            verify_banner = f"""<div style="background:#fff8e1;border:2px solid #f59e0b;border-radius:8px;
-padding:14px 18px;margin:16px 0">
-<p style="margin:0;color:#b45309;font-size:14px;font-weight:700">⚠️ MANUAL VERIFICATION REQUIRED</p>
-<p style="margin:6px 0 4px;color:#92400e;font-size:13px">
-  The following could not be automatically extracted from this invoice:
-  <strong>{missing_str}</strong>
-</p>
-<p style="margin:0;color:#92400e;font-size:12px">
-  Please open the original invoice file in S3, verify the details manually,
-  and only approve if the invoice is legitimate and complete.
-</p>
+            if inv_no_missing: missing_fields.append('Invoice Number')
+            missing_str = ', '.join(missing_fields)
+
+            # Combined message if also duplicate
+            if is_duplicate:
+                combined_title = '⚠️ DUPLICATE INVOICE + MISSING DATA — MANUAL APPROVAL REQUIRED'
+                combined_body  = f'This invoice appears to be a <strong>duplicate</strong> AND has missing data: <strong>{missing_str}</strong>. Please open the original file in S3, verify all details carefully, and only approve if the invoice is legitimate.'
+            else:
+                combined_title = '⚠️ MISSING DATA — PLEASE APPROVE MANUALLY'
+                combined_body  = f'The following could not be automatically extracted: <strong>{missing_str}</strong>. Please open the original invoice file in S3 and verify the details before approving.'
+
+            verify_banner = f"""<div style="background:#fff8e1;border:2px solid #f59e0b;border-radius:8px;padding:16px 20px;margin:16px 0">
+<p style="margin:0 0 8px;color:#b45309;font-size:14px;font-weight:800">{combined_title}</p>
+<p style="margin:0 0 10px;color:#92400e;font-size:13px">{combined_body}</p>
+<div style="background:#fef3c7;border-radius:6px;padding:10px 14px">
+  <p style="margin:0;font-size:12px;color:#78350f;font-weight:600">📎 Original invoice file:</p>
+  <p style="margin:4px 0 0;font-size:12px;color:#92400e;word-break:break-all">s3://{os.getenv('S3_BUCKET_NAME','al-islami-petty-cash-invoices')}/{s3_key}</p>
+  <p style="margin:6px 0 0;font-size:11px;color:#92400e">Open this file in AWS S3 Console to view the original invoice.</p>
+</div>
 </div>"""
 
         line_rows = ''

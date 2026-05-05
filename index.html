@@ -440,7 +440,7 @@ tr:hover td{background:#f8fff8}
         <span class="ct">🏷️ Category Spend Dashboard</span>
         <div style="display:flex;align-items:center;gap:8px">
           <span id="cat-last-updated" style="font-size:10px;color:var(--muted)"></span>
-          <select class="month-select" id="cat-month-select" onchange="renderCatDashboard()"></select>
+          <select class="month-select" id="cat-month-select" onchange="renderCatDashboard()"><option>Loading...</option></select>
           <button class="btn" onclick="renderCatDashboard()">↻ Refresh</button>
         </div>
       </div>
@@ -537,7 +537,7 @@ function checkPwd(){
     document.getElementById('pwd-err').style.display='none';
     document.getElementById('landing').style.display='none';
     document.getElementById('mgr-page').classList.add('active');
-    updateBalUI();loadRecs();populateMonths();populateCatMonths();setTimeout(renderAnalytics,600);setTimeout(renderCatDashboard,700);setTimeout(renderPendingTime,500);
+    updateBalUI();loadRecs();populateMonths();populateCatMonths();renderPendingTime();setTimeout(renderAnalytics,500);setTimeout(()=>{populateCatMonths();renderCatDashboard();},800);
   }else{
     const i=document.getElementById('pwd-input');
     i.classList.add('err');document.getElementById('pwd-err').style.display='block';
@@ -700,12 +700,20 @@ function populateCatMonths(){
   if(!sel)return;
   const months=new Set();
   allRecs.forEach(r=>{if(r.created_at)months.add(r.created_at.substring(0,7))});
-  const now=new Date().toISOString().substring(0,7);months.add(now);
+  // Always include current Dubai month
+  const dubaiNow=new Date().toLocaleString('en-CA',{timeZone:'Asia/Dubai'}).substring(0,7);
+  months.add(dubaiNow);
   const sorted=[...months].sort().reverse();
+  // Preserve current selection if valid, else default to latest month with data
+  const currentVal=sel.value;
   sel.innerHTML=sorted.map(m=>{
     const d=new Date(m+'-01');
-    return`<option value="${m}" ${m===now?'selected':''}>${d.toLocaleString('default',{month:'long',year:'numeric'})}</option>`
+    return`<option value="${m}">${d.toLocaleString('default',{month:'long',year:'numeric'})}</option>`
   }).join('');
+  // Select: if current was valid keep it, else pick first month that has data
+  const monthsWithData=[...months].filter(m=>allRecs.some(r=>(r.created_at||'').startsWith(m))).sort().reverse();
+  const bestMonth=monthsWithData[0]||dubaiNow;
+  sel.value=(currentVal&&months.has(currentVal))?currentVal:bestMonth;
 }
 
 function renderCatDashboard(){
@@ -715,6 +723,9 @@ function renderCatDashboard(){
     const now=new Date();
     lbl.textContent='Updated '+now.toLocaleTimeString('en-GB',{timeZone:'Asia/Dubai',hour:'2-digit',minute:'2-digit'})+' (Dubai)';
   }
+  // Ensure month is selected - pick best available
+  const sel=document.getElementById('cat-month-select');
+  if(sel && !sel.value) populateCatMonths();
   const month=document.getElementById('cat-month-select')?.value;
   if(!month)return;
   const el=document.getElementById('cat-dashboard-content');
