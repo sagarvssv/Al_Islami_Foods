@@ -49,7 +49,9 @@ def get_all_records():
     table = get_aws_session().resource('dynamodb').Table(
         os.getenv('DYNAMODB_TABLE', 'al-islami-petty-cash')
     )
-    return table.scan().get('Items', [])
+    items = table.scan().get('Items', [])
+    # Filter out internal config records
+    return [i for i in items if not str(i.get('invoice_id','')).startswith('__')]
 
 def ensure_ses_verified(email: str) -> bool:
     try:
@@ -98,11 +100,7 @@ padding:14px 18px;margin:16px 0">
 
         # Detect missing data
         vendor_missing = not vendor  # already normalized above
-        try:
-            amount_val = float(str(amount).replace(',','').replace(' ','') or 0)
-        except:
-            amount_val = 0
-        amount_missing = amount_val <= 0
+        amount_missing = not amount or float(str(amount).replace(',','') or 0) <= 0
         inv_no_missing = not inv_num_raw
 
         verify_banner = ''
@@ -270,8 +268,7 @@ def send_submitter_notification(submitter_email: str, invoice: dict,
         return
     try:
         ses     = get_aws_session().client('ses')
-        vendor_raw = (invoice.get('vendor_name') or '').strip()
-        vendor = '' if vendor_raw.lower() in ['unknown','unknown vendor','n/a','none',''] else vendor_raw
+        vendor  = invoice.get('vendor_name', 'Unknown')
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
         inv_num_raw = (invoice.get('invoice_number') or '').strip()
@@ -667,6 +664,68 @@ class Handler(BaseHTTPRequestHandler):
                 print(f"[REVERSE ERROR] {e}")
                 self._respond(500, str(e))
 
+        elif path == '/petty-cash':
+            try:
+                table = get_aws_session().resource('dynamodb').Table(
+                    os.getenv('DYNAMODB_TABLE','al-islami-petty-cash')
+                )
+                item = table.get_item(Key={'invoice_id':'__PETTY_CASH_CONFIG__'}).get('Item',{})
+                self._json(200, {
+                    'balance'     : float(item.get('balance', 5000)),
+                    'weekly_topup': float(item.get('weekly_topup', 0)),
+                    'topup_type'  : item.get('topup_type','weekly'),
+                    'updated_at'  : item.get('updated_at',''),
+                })
+            except Exception as e:
+                self._json(200, {'balance': 5000, 'weekly_topup': 0, 'topup_type': 'weekly'})
+
+        elif path == '/petty-cash/update':
+            action     = params.get('action',      [''])[0]
+            amount_str = params.get('amount',      ['0'])[0]
+            ttype      = params.get('topup_type',  ['weekly'])[0]
+            try:
+                from datetime import datetime
+                amount = float(amount_str or 0)
+                table  = get_aws_session().resource('dynamodb').Table(
+                    os.getenv('DYNAMODB_TABLE','al-islami-petty-cash')
+                )
+                item    = table.get_item(Key={'invoice_id':'__PETTY_CASH_CONFIG__'}).get('Item',{})
+                current = float(item.get('balance', 5000))
+
+                if action == 'weekly':
+                    table.update_item(
+                        Key={'invoice_id':'__PETTY_CASH_CONFIG__'},
+                        UpdateExpression='SET weekly_topup = :w, topup_type = :t, updated_at = :ts',
+                        ExpressionAttributeValues={
+                            ':w' : str(amount),
+                            ':t' : ttype,
+                            ':ts': datetime.utcnow().isoformat()
+                        }
+                    )
+                    print(f"[CASH] Topup set: AED {amount} / {ttype}")
+                    return self._json(200, {'status':'ok','balance':current,
+                                           'label':f'{ttype.capitalize()} top-up: AED {amount:.2f}'})
+
+                if action   == 'add':    new_balance = current + amount
+                elif action == 'remove': new_balance = max(0, current - amount)
+                elif action == 'set':    new_balance = amount
+                else: return self._respond(400, 'Invalid action')
+
+                table.update_item(
+                    Key={'invoice_id':'__PETTY_CASH_CONFIG__'},
+                    UpdateExpression='SET balance = :b, updated_at = :ts',
+                    ExpressionAttributeValues={
+                        ':b' : str(new_balance),
+                        ':ts': datetime.utcnow().isoformat()
+                    }
+                )
+                print(f"[CASH] {action} AED {amount} → balance: AED {new_balance:.2f}")
+                self._json(200, {'status':'ok','balance':new_balance,
+                                 'label':f'AED {amount:.2f} {action}ed'})
+            except Exception as e:
+                print(f"[CASH ERROR] {e}")
+                self._respond(500, str(e))
+
         elif path == '/records':
             try:
                 self._json(200, get_all_records())
@@ -827,8 +886,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _rejection_form(self, invoice_id, invoice, level):
         """Show a rejection reason form to the manager."""
-        vendor_raw = (invoice.get('vendor_name') or '').strip()
-        vendor = '' if vendor_raw.lower() in ['unknown','unknown vendor','n/a','none',''] else vendor_raw
+        vendor  = invoice.get('vendor_name', 'Unknown')
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
         inv_num_raw2 = (invoice.get('invoice_number') or '').strip()

@@ -500,12 +500,12 @@ tr:hover td{background:#f8fff8}
 const API=()=>'https://web-production-40aa02.up.railway.app';
 const MGR_PWD='Alislami@2026';
 let allRecs=[],uFV='ALL',mFV='ALL',fileQueue=[],processing=false;
-let cash=parseFloat(localStorage.getItem('pettyCash')||'5000');
-let weeklyAmt=parseFloat(localStorage.getItem('weeklyTopup')||'0');
+let cash=5000; // loaded from server
+let weeklyAmt=0;
 let amtMode='add';
 let topupTab='weekly';
 
-// Transaction history stored in localStorage
+// Transaction history stored in localStorage (per-device log)
 function getTxns(){try{return JSON.parse(localStorage.getItem('cashTxns')||'[]')}catch{return[]}}
 function saveTxns(t){localStorage.setItem('cashTxns',JSON.stringify(t))}
 function addTxn(type,amount,label,invoiceId,invoiceNo,balAfter){
@@ -516,9 +516,21 @@ function addTxn(type,amount,label,invoiceId,invoiceNo,balAfter){
     balAfter,
     ts:new Date().toISOString()
   });
-  // Keep last 500 transactions
   if(txns.length>500)txns.pop();
   saveTxns(txns);
+}
+
+// Load petty cash balance from server
+async function loadCashBalance(){
+  try{
+    const r=await fetch(API()+'/petty-cash',{signal:AbortSignal.timeout(4000)});
+    const d=await r.json();
+    cash=d.balance||5000;
+    weeklyAmt=d.weekly_topup||0;
+  }catch(e){
+    // fallback to localStorage
+    cash=parseFloat(localStorage.getItem('pettyCash')||'5000');
+  }
 }
 let sCh=null;
 
@@ -544,16 +556,14 @@ function checkPwd(){
     i.value='';setTimeout(()=>i.classList.remove('err'),500);
   }
 }
-function updateBalUI(){
+async function updateBalUI(){
+  await loadCashBalance();
   const spent=allRecs.filter(r=>getS(r)==='FULLY_APPROVED').reduce((s,r)=>s+toAED(r.total_amount,r.currency),0);
   const remaining=cash-spent;
-  // Total budget
   const cashEl=document.getElementById('bal-amount');
   if(cashEl) cashEl.textContent='AED '+cash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  // Remaining (prominent)
   const remEl=document.getElementById('bal-remaining');
   if(remEl) remEl.textContent='AED '+remaining.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  // Sub text
   const subEl=document.getElementById('bal-sub');
   if(subEl) subEl.textContent=`AED ${spent.toFixed(2)} approved spend this period`;
   renderTxnHistory();
@@ -580,27 +590,34 @@ function selectTopupTab(tab){
     tab==='weekly'?'Set weekly top-up amount (AED):':'Set monthly top-up amount (AED):';
 }
 function closeAmtModal(){document.getElementById('amt-modal-overlay').classList.remove('show')}
-function confirmAmount(){
+async function confirmAmount(){
   const v=parseFloat(document.getElementById('amt-input').value);
   if(!v||v<=0){toast('Enter a valid amount','err');return}
-  if(amtMode==='add'){
-    cash+=v;localStorage.setItem('pettyCash',cash);
-    addTxn('add',v,'Cash Added — Manual top-up','','',cash);
-    toast('✅ Added AED '+v.toFixed(2));
-  }else if(amtMode==='remove'){
-    if(v>cash){toast('Cannot exceed balance','err');return}
-    cash-=v;localStorage.setItem('pettyCash',cash);
-    addTxn('remove',v,'Cash Removed — Manual withdrawal','','',cash);
-    toast('✅ Removed AED '+v.toFixed(2));
-  }else{
-    weeklyAmt=v;
-    const label=topupTab==='weekly'?'Weekly':'Monthly';
-    localStorage.setItem('weeklyTopup',weeklyAmt);
-    localStorage.setItem('topupType',topupTab);
-    addTxn('topup',v,label+' Top-up configured (AED '+v.toFixed(2)+'/'+topupTab+')','','',cash);
-    toast('✅ '+label+' top-up set: AED '+v.toFixed(2));
+  try{
+    if(amtMode==='add'){
+      const r=await fetch(`${API()}/petty-cash/update?action=add&amount=${v}`);
+      const d=await r.json();
+      cash=d.balance;
+      addTxn('add',v,'Cash Added — Manual top-up','','',cash);
+      toast('✅ Added AED '+v.toFixed(2));
+    }else if(amtMode==='remove'){
+      if(v>cash){toast('Cannot exceed balance','err');return}
+      const r=await fetch(`${API()}/petty-cash/update?action=remove&amount=${v}`);
+      const d=await r.json();
+      cash=d.balance;
+      addTxn('remove',v,'Cash Removed — Manual withdrawal','','',cash);
+      toast('✅ Removed AED '+v.toFixed(2));
+    }else{
+      const r=await fetch(`${API()}/petty-cash/update?action=weekly&amount=${v}&topup_type=${topupTab}`);
+      weeklyAmt=v;
+      const label=topupTab==='weekly'?'Weekly':'Monthly';
+      addTxn('topup',v,label+' Top-up set: AED '+v.toFixed(2)+'/'+topupTab,'','',cash);
+      toast('✅ '+label+' top-up set: AED '+v.toFixed(2));
+    }
+  }catch(e){
+    toast('Error saving balance: '+e.message,'err');return;
   }
-  updateBalUI();closeAmtModal();
+  await updateBalUI();closeAmtModal();
 }
 async function loadRecs(silent=true){
   try{
