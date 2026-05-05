@@ -98,7 +98,11 @@ padding:14px 18px;margin:16px 0">
 
         # Detect missing data
         vendor_missing = not vendor  # already normalized above
-        amount_missing = not amount or float(str(amount).replace(',','') or 0) <= 0
+        try:
+            amount_val = float(str(amount).replace(',','').replace(' ','') or 0)
+        except:
+            amount_val = 0
+        amount_missing = amount_val <= 0
         inv_no_missing = not inv_num_raw
 
         verify_banner = ''
@@ -266,7 +270,8 @@ def send_submitter_notification(submitter_email: str, invoice: dict,
         return
     try:
         ses     = get_aws_session().client('ses')
-        vendor  = invoice.get('vendor_name', 'Unknown')
+        vendor_raw = (invoice.get('vendor_name') or '').strip()
+        vendor = '' if vendor_raw.lower() in ['unknown','unknown vendor','n/a','none',''] else vendor_raw
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
         inv_num_raw = (invoice.get('invoice_number') or '').strip()
@@ -822,7 +827,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _rejection_form(self, invoice_id, invoice, level):
         """Show a rejection reason form to the manager."""
-        vendor  = invoice.get('vendor_name', 'Unknown')
+        vendor_raw = (invoice.get('vendor_name') or '').strip()
+        vendor = '' if vendor_raw.lower() in ['unknown','unknown vendor','n/a','none',''] else vendor_raw
         amount  = invoice.get('total_amount', 0)
         curr    = invoice.get('currency', 'AED')
         inv_num_raw2 = (invoice.get('invoice_number') or '').strip()
