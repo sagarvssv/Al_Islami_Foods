@@ -523,12 +523,14 @@ function addTxn(type,amount,label,invoiceId,invoiceNo,balAfter){
 // Load petty cash balance from server
 async function loadCashBalance(){
   try{
-    const r=await fetch(API()+'/petty-cash',{signal:AbortSignal.timeout(4000)});
+    const r=await fetch(API()+'/petty-cash',{signal:AbortSignal.timeout(5000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const d=await r.json();
-    cash=d.balance||5000;
-    weeklyAmt=d.weekly_topup||0;
+    cash=parseFloat(d.balance)||5000;
+    weeklyAmt=parseFloat(d.weekly_topup)||0;
+    localStorage.setItem('pettyCash',cash); // sync to localStorage as backup
   }catch(e){
-    // fallback to localStorage
+    console.warn('Cash balance from server failed, using localStorage:',e.message);
     cash=parseFloat(localStorage.getItem('pettyCash')||'5000');
   }
 }
@@ -621,20 +623,30 @@ async function confirmAmount(){
 }
 async function loadRecs(silent=true){
   try{
-    const r=await fetch(API()+'/records',{signal:AbortSignal.timeout(6000)});
-    allRecs=await r.json();setSrv(true);
-    renderU();renderM();updateUStats();updateMStats();updateBalUI();
-    const ts='Refreshed '+new Date().toLocaleTimeString('en-GB');
+    const r=await fetch(API()+'/records',{signal:AbortSignal.timeout(8000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    // Filter out internal config records
+    allRecs=data.filter(rec=>rec.invoice_id&&!rec.invoice_id.startsWith('__'));
+    setSrv(true);
+    renderU();renderM();updateUStats();updateMStats();
+    await updateBalUI();
+    const ts='Refreshed '+new Date().toLocaleTimeString('en-GB',{timeZone:'Asia/Dubai'});
     ['u-ref','m-ref'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=ts});
+    if(document.getElementById('mgr-page').classList.contains('active')){
+      renderPendingTime();
+    }
     if(!silent)toast(allRecs.length+' records loaded');
-  if(document.getElementById('mgr-page').classList.contains('active')){
-    // Only refresh pending time on auto-refresh (every 15s)
-    // Category dashboard refreshes manually or every 60s separately
-    renderPendingTime();
-  }
-  }catch{
+  }catch(e){
+    console.warn('loadRecs failed:',e.message);
     setSrv(false);
-    ['u-tbody','m-tbody'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='<tr><td colspan="11"><div class="empty">🔌 Cannot reach server</div></td></tr>'});
+    if(!allRecs.length){
+      ['u-tbody','m-tbody'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el&&el.innerHTML.includes('Loading'))
+          el.innerHTML='<tr><td colspan="12"><div class="empty">🔌 Cannot reach server — retrying...</div></td></tr>';
+      });
+    }
   }
 }
 function getS(r){return r.final_status||r.status||'PENDING'}
@@ -1118,10 +1130,11 @@ function updSummary(){
 }
 loadRecs(true);
 
-// Records auto-refresh every 15s (skip during upload processing)
+// Records auto-refresh every 20s (skip during upload processing)
+// Increased to 20s to reduce server load on mobile
 setInterval(()=>{
   if(!processing) loadRecs(true);
-}, 15000);
+}, 20000);
 
 // Category dashboard auto-refresh every 60s (only when manager portal active)
 setInterval(()=>{
