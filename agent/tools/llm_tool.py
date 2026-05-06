@@ -16,61 +16,65 @@ def get_session():
     return boto3.Session(region_name=region)
 
 
-SYSTEM_PROMPT = """You are an expert invoice data extraction AI for Al Islami Foods UAE.
+SYSTEM_PROMPT = """You are an expert invoice data extraction and classification AI for Al Islami Foods UAE.
 
-Extract structured invoice data from OCR text. The invoice may be in English, Arabic, or both.
-Always return amounts in their ORIGINAL currency — do NOT convert currencies.
+Extract all invoice fields AND classify the category by analyzing the FULL invoice content.
 
-CRITICAL CATEGORY RULE — read carefully before classifying:
+CATEGORY CLASSIFICATION — analyze vendor name, items, descriptions, and context:
 
-The category field MUST follow these rules in PRIORITY ORDER:
+Think step by step:
+1. Read the vendor name and all line items carefully
+2. Ask: what does this business sell or what service do they provide?
+3. Pick the single best matching category below
 
-RULE 1 — TRANSPORT (highest priority for fuel/petrol):
-Set category = "Transport" if ANY of these appear ANYWHERE in the text:
-- Words: petrol, fuel, diesel, gasoline, filling station, fuel station, service station, pump
-- Words: litre, ltr, lts, gallons, litres (quantity of fuel)
-- Company names: IndianOil, Indian Oil, IOCL, HPCL, BPCL, Hindustan Petroleum, Bharat Petroleum
-- Company names: ADNOC, ENOC, EPPCO, BP, Shell, Caltex, Total, Mobil, ExxonMobil
-- Company names: HP Petrol, HP Gas, IOC, Petron, Sinopec
-- Any "STN", "Station", "Filling" near a fuel company name
-- Vehicle expenses: car repair, tyre, oil change, vehicle service, auto service, garage
+CATEGORY DEFINITIONS:
 
-RULE 2 — FOOD & BEVERAGE:
-Set category = "Food & Beverage" if invoice is from:
-- Restaurants, cafes, dhabas, hotels serving food, canteens, food courts
-- Supermarkets: Lulu, Carrefour, Spinneys, Union Coop, Geant, Nesto
-- Catering, food supply companies, groceries, beverages
+"Transport"
+- Fuel/petrol/diesel/gasoline stations (any brand: IndianOil, IOCL, HPCL, BPCL, ADNOC, ENOC, EPPCO, Shell, BP, Caltex, Total, Rajashree Petroleum, Sai Balaji Petroleum, Gupta Service Station, any STN/Station/Filling/Petroleum/Petrol in name)
+- If vendor name contains: Petroleum, Petrol, Filling, Station, Fuel, Oil (as a fuel company)
+- If line items mention: litres, ltr, diesel, petrol, fuel
+- Vehicle service, tyre, car wash, garage, auto repairs
+- Taxi, rideshare, courier, freight, logistics, delivery charges
 
-RULE 3 — UTILITIES:
-- Electricity boards (DEWA, ADDC, SEWA, BESCOM, MSEB), water, gas pipeline
-- Telecom (Etisalat/e&, du, STC, Airtel, Vodafone, Jio, BSNL)
+"Food & Beverage"
+- Restaurants, dhabas, cafes, bakeries, food courts, canteens
+- Supermarkets and grocery stores
+- Catering, food supply, beverages
 
-RULE 4 — OFFICE SUPPLIES:
-- Stationery, paper, pens, printer ink, toner, printing, photocopying
+"Utilities"
+- Electricity, water, gas supply companies
+- Internet service providers, telephone, mobile bills
 
-RULE 5 — MAINTENANCE:
-- Building/equipment repairs, AC service, plumbing, electrical work, pest control
+"Office Supplies"
+- Stationery, paper, pens, printing, photocopying, binding
 
-RULE 6 — IT & TECHNOLOGY:
-- Software, hardware, computers, cloud services, IT support
+"Maintenance"
+- Building repairs, plumbing, AC service, electrical work
+- Equipment maintenance, pest control, cleaning services
 
-RULE 7 — MARKETING:
-- Advertising, branding, events, exhibitions, promotions
+"IT & Technology"
+- Software, hardware, computers, IT services, cloud
 
-RULE 8 — TRAVEL:
-- Hotels, flight tickets, airport transfers (NOT fuel)
+"Marketing"
+- Advertising, events, promotions, branding
 
-RULE 9 — HR & RECRUITMENT:
-- Staff costs, training, recruitment fees
+"Travel"
+- Hotels, accommodation, airline tickets (not fuel)
 
-RULE 10 — LEGAL & PROFESSIONAL:
-- Legal fees, accounting, consulting, government fees
+"HR & Recruitment"
+- Staff salaries, recruitment, training
 
-RULE 11 — OTHER:
-Use "Other" ONLY if absolutely none of the above rules match.
-NEVER use "Other" for fuel/petrol invoices — those are always "Transport".
+"Legal & Professional"
+- Legal, accounting, consulting, government fees
 
-Return ONLY valid JSON:
+"Other"
+- Only if truly none of the above fit
+
+IMPORTANT: Petroleum companies, filling stations, fuel vendors = ALWAYS "Transport"
+Examples: "Rajashree Petroleum" = Transport, "SAI BALAJI PETROLEUM" = Transport,
+"IndianOil" = Transport, "GUPTA SERVICE STN" = Transport
+
+Return ONLY valid JSON — no markdown, no explanation:
 {
   "vendor_name": "string",
   "invoice_number": "string",
@@ -78,14 +82,12 @@ Return ONLY valid JSON:
   "total_amount": number,
   "currency": "AED or SAR or INR or USD etc",
   "tax_amount": number,
-  "category": "Transport or Food & Beverage or Utilities or Office Supplies or Maintenance or IT & Technology or Marketing or Travel or HR & Recruitment or Legal & Professional or Other",
+  "category": "one category string from the list above",
   "payment_method": "string",
   "line_items": [{"description": "string", "qty": number, "unit_price": number, "total": number}],
   "notes": "string",
   "original_language": "English or Arabic or Bilingual"
-}
-
-Return ONLY the JSON object — no markdown, no explanation."""
+}"""
 
 
 def translate_arabic_to_english(text: str) -> str:
@@ -142,10 +144,13 @@ def call_claude(raw_text: str, is_arabic: bool = False) -> dict:
 
     prompt = f"""Extract all invoice data from the following OCR text.{lang_hint}
 
-OCR TEXT:
-{raw_text[:6000]}
+Study the vendor name, all text, and item descriptions carefully before assigning category.
+For petroleum/petrol/fuel/filling station vendors → category MUST be "Transport".
 
-Return ONLY a valid JSON object."""
+OCR TEXT:
+{raw_text[:8000]}
+
+Return ONLY a valid JSON object with all fields including the correct category."""
 
     response = client.invoke_model(
         modelId     = model_id,
@@ -164,6 +169,55 @@ Return ONLY a valid JSON object."""
     text = re.sub(r'^```(?:json)?\s*', '', text)
     text = re.sub(r'\s*```$', '', text)
     return json.loads(text.strip())
+
+
+def _fix_category(invoice: dict) -> dict:
+    """
+    Safety net: override category based on vendor name and keywords.
+    Called after Claude returns to catch obvious misclassifications.
+    """
+    vendor   = (invoice.get('vendor_name') or '').lower()
+    notes    = (invoice.get('notes') or '').lower()
+    items    = str(invoice.get('line_items') or '').lower()
+    combined = vendor + ' ' + notes + ' ' + items
+
+    transport_keywords = [
+        'petroleum', 'petrol', 'diesel', 'fuel', 'filling', 'service stn',
+        'service station', 'fuel station', 'filling station', 'gas station',
+        'indianoil', 'indian oil', 'iocl', 'hpcl', 'bpcl', 'essar petrol',
+        'rajashree', 'sai balaji', 'gupta service', 'hp petrol',
+        'adnoc', 'enoc', 'eppco', 'emarat', 'shell', 'caltex', 'bp petrol',
+        'litre', 'ltr', 'motor spirit', 'ms fuel', 'lubricant',
+        'reliance petro', 'nayara', 'mangalore refinery',
+    ]
+    if any(kw in combined for kw in transport_keywords):
+        if invoice.get('category') != 'Transport':
+            print(f"  [CATEGORY FIX] '{invoice.get('category')}' → 'Transport' "
+                  f"(keyword match in vendor/notes)")
+            invoice['category'] = 'Transport'
+        return invoice
+
+    food_keywords = [
+        'restaurant', 'cafe', 'dhaba', 'canteen', 'catering', 'bakery',
+        'lulu hypermarket', 'carrefour', 'spinneys', 'union coop', 'nesto',
+        'choithrams', 'geant', 'grocery', 'supermarket',
+    ]
+    if any(kw in combined for kw in food_keywords):
+        if invoice.get('category') not in ['Food & Beverage']:
+            print(f"  [CATEGORY FIX] '{invoice.get('category')}' → 'Food & Beverage'")
+            invoice['category'] = 'Food & Beverage'
+        return invoice
+
+    utility_keywords = [
+        'dewa', 'addc', 'sewa', 'electricity', 'water board', 'etisalat',
+        ' du ', 'airtel', 'vodafone', 'jio', 'bsnl', 'telecom',
+    ]
+    if any(kw in combined for kw in utility_keywords):
+        if invoice.get('category') != 'Utilities':
+            print(f"  [CATEGORY FIX] '{invoice.get('category')}' → 'Utilities'")
+            invoice['category'] = 'Utilities'
+
+    return invoice
 
 
 def structure_invoice(raw_text: str) -> dict:
@@ -192,10 +246,13 @@ def structure_invoice(raw_text: str) -> dict:
         if not invoice.get('category'):
             invoice['category'] = 'Other'
 
+        # Safety net: override wrong categories
+        invoice = _fix_category(invoice)
+
         lang = invoice.get('original_language', 'English')
         print(f"  Claude extracted: vendor={invoice.get('vendor_name','?')}, "
               f"amount={invoice.get('total_amount',0)} {invoice.get('currency','?')}, "
-              f"lang={lang}")
+              f"category={invoice.get('category','?')}, lang={lang}")
 
         # ── Step 2: If Arabic and extraction poor → use Amazon Translate ─
         if is_arabic and is_extraction_poor(invoice):
