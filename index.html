@@ -765,7 +765,10 @@ function renderCatDashboard(){
   // Build category map
   const catMap={};
   mr.forEach(r=>{
-    const cat=r.category||'Other';
+    // Normalize category names
+    let cat=r.category||'Other';
+    if(cat==='Others')cat='Other';
+    if(cat==='Food & Beverages')cat='Food & Beverage';
     const curr=(r.currency||'AED').toUpperCase();
     const aedAmt=toAED(r.total_amount,curr);
     if(!catMap[cat])catMap[cat]={aed:0,count:0,invoices:[]};
@@ -801,17 +804,19 @@ function renderCatDashboard(){
 
   // Color palette
   const CAT_COLORS={
-    'Food & Beverage'     : '#e67e22',   // orange
-    'Transport'           : '#e74c3c',   // bright red
-    'Utilities'           : '#1abc9c',   // teal
-    'Office Supplies'     : '#3498db',   // sky blue
-    'Maintenance'         : '#9b59b6',   // purple
-    'IT & Technology'     : '#2c3e50',   // dark navy
-    'Marketing'           : '#f39c12',   // yellow-orange
-    'HR & Recruitment'    : '#16a085',   // dark teal
-    'Legal & Professional': '#8e44ad',   // violet
-    'Travel'              : '#27ae60',   // green
-    'Other'               : '#95a5a6',   // grey
+    'Food & Beverage'     : '#e67e22',
+    'Transport'           : '#e74c3c',
+    'Utilities'           : '#1abc9c',
+    'Office Supplies'     : '#3498db',
+    'Maintenance'         : '#9b59b6',
+    'IT & Technology'     : '#2c3e50',
+    'Marketing'           : '#f39c12',
+    'HR & Recruitment'    : '#16a085',
+    'Legal & Professional': '#8e44ad',
+    'Travel'              : '#27ae60',
+    'Other'               : '#95a5a6',
+    'Others'              : '#95a5a6',
+    'Food & Beverages'    : '#e67e22',
   };
 
   const CAT_ICONS={'Food & Beverages':'🍽️','Stationery':'📎','Petrol':'⛽','Electronics':'💻','Others':'📦'};
