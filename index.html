@@ -801,17 +801,17 @@ function renderCatDashboard(){
 
   // Color palette
   const CAT_COLORS={
-    'Food & Beverage'    : '#e67e22',
-    'Office Supplies'    : '#2980b9',
-    'Transport'          : '#c0392b',
-    'Utilities'          : '#16a085',
-    'Maintenance'        : '#8e44ad',
-    'IT & Technology'    : '#2471a3',
-    'Marketing'          : '#d35400',
-    'HR & Recruitment'   : '#1a5276',
-    'Legal & Professional': '#6d4c41',
-    'Travel'             : '#27ae60',
-    'Other'              : '#7f8c8d',
+    'Food & Beverage'     : '#e67e22',   // orange
+    'Transport'           : '#e74c3c',   // bright red
+    'Utilities'           : '#1abc9c',   // teal
+    'Office Supplies'     : '#3498db',   // sky blue
+    'Maintenance'         : '#9b59b6',   // purple
+    'IT & Technology'     : '#2c3e50',   // dark navy
+    'Marketing'           : '#f39c12',   // yellow-orange
+    'HR & Recruitment'    : '#16a085',   // dark teal
+    'Legal & Professional': '#8e44ad',   // violet
+    'Travel'              : '#27ae60',   // green
+    'Other'               : '#95a5a6',   // grey
   };
 
   const CAT_ICONS={'Food & Beverages':'🍽️','Stationery':'📎','Petrol':'⛽','Electronics':'💻','Others':'📦'};
@@ -833,7 +833,7 @@ function renderCatDashboard(){
       ${cats.map((c,i)=>{
         const [cat,data]=c;
         const pct=totalAED>0?(data.aed/totalAED*100):0;
-        const col=CAT_COLORS[cat]||['#e67e22','#c0392b','#2980b9','#16a085','#8e44ad','#d35400','#27ae60','#1a5276','#6d4c41','#2471a3','#7f8c8d'][i%11];
+        const col=CAT_COLORS[cat]||['#e67e22','#e74c3c','#3498db','#1abc9c','#9b59b6','#2c3e50','#f39c12','#16a085','#8e44ad','#27ae60','#95a5a6'][i%11];
         return`<div style="background:var(--light);border-radius:10px;padding:14px 16px;border-left:4px solid ${col}">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="display:flex;align-items:center;gap:8px">
@@ -871,7 +871,7 @@ function renderCatDashboard(){
         labels:cats.map(c=>c[0]),
         datasets:[{
           data:cats.map(c=>c[1].aed.toFixed(2)),
-          backgroundColor:cats.map((c,i)=>CAT_COLORS[c[0]]||['#e67e22','#c0392b','#2980b9','#16a085','#8e44ad','#d35400','#27ae60','#1a5276','#6d4c41','#2471a3','#7f8c8d'][i%11]),
+          backgroundColor:cats.map((c,i)=>CAT_COLORS[c[0]]||['#e67e22','#e74c3c','#3498db','#1abc9c','#9b59b6','#2c3e50','#f39c12','#16a085','#8e44ad','#27ae60','#95a5a6'][i%11]),
           borderWidth:2,borderColor:'#fff'
         }]
       },
