@@ -36,17 +36,63 @@ Return ONLY valid JSON:
   "original_language": "English or Arabic or Bilingual"
 }
 
-Category guide:
-- Food & Beverage: restaurants, catering, groceries, food
-- Transport: fuel, vehicle, delivery, logistics, shipping
-- Utilities: electricity, water, internet, phone, gas
-- Office Supplies: stationery, printing, cleaning
-- Maintenance: repairs, renovation, facilities
-- IT & Technology: software, hardware, computers
-- Marketing: advertising, promotions, events
-- Travel: hotels, flights, accommodation
-- HR & Recruitment: salaries, training, recruitment
-- Legal & Professional: legal fees, accounting, consulting
+Category classification rules (apply carefully):
+
+TRANSPORT — use for ANY of these:
+- Fuel, petrol, diesel, gasoline, LPG, CNG
+- Fuel stations: ADNOC, ENOC, EPPCO, BP, Shell, Indian Oil, IOCL, Bharat Petroleum, HP, Petron
+- Vehicle repairs, car service, tyre change, oil change
+- Taxi, Uber, Careem, bus, metro, toll, parking
+- Delivery charges, courier, logistics, shipping, freight
+- Any invoice mentioning "litres", "filling station", "pump"
+
+FOOD & BEVERAGE — use for:
+- Restaurants, cafes, diners, food courts, canteens
+- Grocery stores, supermarkets (Lulu, Carrefour, Spinneys, Union Coop)
+- Catering services, food supplies, beverages
+- Any invoice mentioning food items, meals, snacks, drinks
+
+UTILITIES — use for:
+- Electricity (DEWA, ADDC, SEWA), water, gas
+- Internet (Etisalat, du, STC), mobile phone bills
+- Telephone landline, broadband
+
+OFFICE SUPPLIES — use for:
+- Stationery, paper, pens, printer cartridges
+- Printing, photocopying, binding
+- Cleaning supplies, janitorial items
+
+MAINTENANCE — use for:
+- Building repairs, plumbing, electrical work
+- AC service, pest control, painting
+- Equipment servicing, machinery repair
+
+IT & TECHNOLOGY — use for:
+- Software licenses, subscriptions (Microsoft, Adobe, AWS)
+- Computer hardware, laptops, phones, accessories
+- IT services, cloud services, domain/hosting
+
+MARKETING — use for:
+- Advertising, banners, brochures, promotions
+- Events, exhibitions, sponsorships
+- Social media, photography, videography
+
+TRAVEL — use for:
+- Hotel accommodation, Airbnb
+- Flight tickets, airport transfers
+- Travel insurance, visa fees
+
+HR & RECRUITMENT — use for:
+- Staff salaries, overtime, allowances
+- Training, workshops, team building
+- Recruitment agency fees
+
+LEGAL & PROFESSIONAL — use for:
+- Legal fees, court fees, notary
+- Accounting, auditing, consulting fees
+- Government fees, licence renewals
+
+OTHER — use ONLY if nothing above fits
 
 Return ONLY the JSON object — no markdown, no explanation."""
 
