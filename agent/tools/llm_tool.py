@@ -220,6 +220,52 @@ def _fix_category(invoice: dict) -> dict:
     return invoice
 
 
+# Keywords that always mean Transport regardless of what Claude returns
+TRANSPORT_KEYWORDS = [
+    'petroleum','petrol','diesel','gasoline','fuel','filling station',
+    'fuel station','service station','service stn','petrol pump',
+    'indian oil','indianoil','iocl','hpcl','bpcl','hindustan petroleum',
+    'bharat petroleum','hp petrol','adnoc','enoc','eppco','shell','bp ',
+    'caltex','total petrol','mobil','exxon','sinopec','petron',
+    'rajashree','sai balaji','khandelwal oil','gupta service',
+    'gulf petroleum','al ghurair petrol',
+]
+
+def fix_category(invoice: dict) -> dict:
+    """
+    Post-process category fix.
+    If vendor name or any line item description matches transport keywords,
+    force category to Transport regardless of what Claude returned.
+    """
+    vendor = (invoice.get('vendor_name') or '').lower()
+    notes  = (invoice.get('notes') or '').lower()
+    items  = invoice.get('line_items', [])
+    items_text = ' '.join([
+        str(i.get('description','')) for i in items
+        if isinstance(i, dict)
+    ]).lower()
+
+    all_text = f"{vendor} {notes} {items_text}"
+
+    for kw in TRANSPORT_KEYWORDS:
+        if kw in all_text:
+            if invoice.get('category') != 'Transport':
+                print(f"  [CategoryFix] '{kw}' found → overriding '{invoice.get('category')}' to Transport")
+                invoice['category'] = 'Transport'
+            return invoice
+
+    # Also check if vendor contains 'oil', 'petroleum', 'petrol', 'stn', 'station', 'filling'
+    transport_vendor_words = ['oil', 'petroleum', 'petrol', 'filling', ' stn', 'station', 'pump', 'fuels']
+    for word in transport_vendor_words:
+        if word in vendor:
+            if invoice.get('category') != 'Transport':
+                print(f"  [CategoryFix] vendor word '{word}' → overriding '{invoice.get('category')}' to Transport")
+                invoice['category'] = 'Transport'
+            return invoice
+
+    return invoice
+
+
 def structure_invoice(raw_text: str) -> dict:
     """
     Use Claude via Bedrock to extract invoice data.
