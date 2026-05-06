@@ -105,55 +105,11 @@ except lam.exceptions.ResourceConflictException:
     )
     print(f"  Config updated.")
 
-# ─── 3. Attach S3 trigger ──────────────────────────────────────────────────
+# ─── 3. S3 trigger PERMANENTLY DISABLED ──────────────────────────────────────
 print("[3/3] S3 trigger DISABLED — Railway handles all processing")
-print("      Skipping trigger attachment to prevent duplicate records")
-s3     = session.client('s3')
-BUCKET = os.getenv('S3_BUCKET_NAME')
+print("      Not attaching S3 trigger to prevent duplicate invoice records")
+print("      Railway /upload endpoint is the only invoice processor")
 
-# Get confirmed ARN
-fn_arn = lam.get_function_configuration(
-    FunctionName=FUNCTION_NAME
-)['FunctionArn']
-
-try:
-    lam.add_permission(
-        FunctionName=FUNCTION_NAME,
-        StatementId='s3-invoke-trigger',
-        Action='lambda:InvokeFunction',
-        Principal='s3.amazonaws.com',
-        SourceArn=f"arn:aws:s3:::{BUCKET}",
-        SourceAccount=os.getenv('AWS_ACCOUNT_ID', '501991669369')
-    )
-    print("  S3 invoke permission added.")
-except lam.exceptions.ResourceConflictException:
-    print("  S3 invoke permission already exists.")
-
-print("  Waiting 10 seconds for permission to propagate...")
-time.sleep(10)
-
-s3.put_bucket_notification_configuration(
-    Bucket=BUCKET,
-    NotificationConfiguration={
-        'LambdaFunctionConfigurations': [{
-            'LambdaFunctionArn': fn_arn,
-            'Events': ['s3:ObjectCreated:*'],
-            'Filter': {'Key': {'FilterRules': [
-                {'Name': 'suffix', 'Value': '.pdf'}
-            ]}}
-        }]
-    }
-)
-
+fn_arn = lam.get_function_configuration(FunctionName=FUNCTION_NAME)['FunctionArn']
 set_key('.env', 'LAMBDA_FUNCTION_ARN', fn_arn)
 
-print(f"\n{'='*55}")
-print(f"LAMBDA DEPLOYED SUCCESSFULLY")
-print(f"  Function : {FUNCTION_NAME}")
-print(f"  ARN      : {fn_arn}")
-print(f"  Trigger  : Any .pdf upload to {BUCKET}")
-print(f"  Runtime  : Python 3.11 | 512MB | 180s timeout")
-print(f"{'='*55}")
-print(f"\nTest the full pipeline:")
-print(f"  python upload_test.py")
-print(f"  python watch_logs.py")
