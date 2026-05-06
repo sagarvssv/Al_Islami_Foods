@@ -838,6 +838,44 @@ class Handler(BaseHTTPRequestHandler):
                         os.getenv('S3_BUCKET_NAME'), key,
                         submitter_email=sub_email
                     )
+
+                    # ── Category safety fix (catches LLM classification errors) ──
+                    inv = result.get('invoice', {})
+                    if inv:
+                        vendor_low = (inv.get('vendor_name') or '').lower()
+                        TRANSPORT_WORDS = [
+                            'petroleum','petrol','diesel','fuel','filling',
+                            'indianoil','indian oil','iocl','hpcl','bpcl',
+                            'adnoc','enoc','eppco','shell','caltex',
+                            'rajashree','sai balaji','khandelwal',
+                            'gupta service','oil co','oil corp',
+                            'service stn','service station','petrol pump',
+                            'oil company','oil corporation',
+                        ]
+                        for tw in TRANSPORT_WORDS:
+                            if tw in vendor_low:
+                                if inv.get('category') != 'Transport':
+                                    print(f"[CAT FIX] '{tw}' in vendor → Transport (was: {inv.get('category')})")
+                                    inv['category'] = 'Transport'
+                                    result['invoice'] = inv
+                                    # Update DynamoDB category
+                                    try:
+                                        from datetime import datetime
+                                        inv_id = result.get('invoice_id','')
+                                        if inv_id:
+                                            get_aws_session().resource('dynamodb')                                                .Table(os.getenv('DYNAMODB_TABLE','al-islami-petty-cash'))                                                .update_item(
+                                                    Key={'invoice_id': inv_id},
+                                                    UpdateExpression='SET category = :c, updated_at = :ts',
+                                                    ExpressionAttributeValues={
+                                                        ':c': 'Transport',
+                                                        ':ts': datetime.utcnow().isoformat()
+                                                    }
+                                                )
+                                            print(f"[CAT FIX] DynamoDB updated for {inv_id}")
+                                    except Exception as ce:
+                                        print(f"[CAT FIX] DynamoDB update error: {ce}")
+                                break
+
                     pipeline_status[tid] = {
                         'pipeline_status': result.get('status', 'done'),
                         'current_step'   : 6,
