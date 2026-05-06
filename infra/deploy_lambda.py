@@ -106,7 +106,7 @@ except lam.exceptions.ResourceConflictException:
     print(f"  Config updated.")
 
 # ─── 3. Attach S3 trigger ──────────────────────────────────────────────────
-print("[3/3] Skipping S3 trigger — Railway server handles all processing")
+print("[3/3] Skipping S3 trigger — Railway handles all processing to prevent duplicates")
 print("  S3 trigger intentionally disabled to prevent duplicate processing")
 s3     = session.client('s3')
 BUCKET = os.getenv('S3_BUCKET_NAME')
