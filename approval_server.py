@@ -38,6 +38,107 @@ MANAGER1_EMAIL   = os.getenv('APPROVAL_EMAIL', '')
 MANAGER2_EMAIL   = os.getenv('MANAGER2_EMAIL', '')
 APPROVAL_API_URL = os.getenv('APPROVAL_API_URL', 'https://web-production-40aa02.up.railway.app')
 
+VALID_CATEGORIES = [
+    'Food & Beverage', 'Transport', 'Utilities', 'Office Supplies',
+    'Maintenance', 'IT & Technology', 'Marketing', 'Travel',
+    'HR & Recruitment', 'Legal & Professional', 'Other'
+]
+
+# Transport keyword fast-check (no LLM call needed for fuel invoices)
+TRANSPORT_FAST_KEYWORDS = [
+    'petroleum','petrol','diesel','gasoline','fuel','filling',
+    'indianoil','indian oil','iocl','hpcl','bpcl','adnoc','enoc',
+    'eppco','shell','caltex','rajashree','sai balaji','khandelwal oil',
+    'gupta service','oil co','oil corp','service stn','service station',
+    'petrol pump','oil company','oil corporation',
+]
+
+def classify_category_with_claude(invoice: dict) -> str:
+    """
+    Ask Claude Bedrock to classify invoice category based on
+    vendor name, line items and all extracted data.
+    Falls back to fast keyword check first for transport.
+    """
+    vendor     = (invoice.get('vendor_name') or '').strip()
+    items      = invoice.get('line_items') or []
+    notes      = (invoice.get('notes') or '').strip()
+    cur_cat    = (invoice.get('category') or 'Other').strip()
+
+    # Fast transport check — no LLM call needed
+    vendor_low = vendor.lower()
+    for kw in TRANSPORT_FAST_KEYWORDS:
+        if kw in vendor_low:
+            print(f"  [FastCat] '{kw}' in vendor → Transport")
+            return 'Transport'
+
+    # Build item descriptions string
+    item_descs = []
+    for item in items:
+        if isinstance(item, dict):
+            desc = item.get('description','')
+            qty  = item.get('qty','')
+            price= item.get('unit_price','')
+            if desc:
+                item_descs.append(f"- {desc} (qty:{qty}, price:{price})")
+
+    items_text = '\n'.join(item_descs) if item_descs else 'No line items extracted'
+
+    prompt = f"""You are a finance categorization AI for Al Islami Foods UAE.
+
+Given this invoice data, choose exactly ONE category from the list below.
+
+Vendor Name: {vendor}
+Current Category (may be wrong): {cur_cat}
+Notes: {notes}
+Line Items:
+{items_text}
+
+CATEGORIES (choose exactly one):
+1. Food & Beverage — restaurants, cafes, dhabas, grocery stores, catering, food/drink items
+2. Transport — fuel, petrol, diesel, oil stations, vehicle expenses, delivery, courier, logistics
+3. Utilities — electricity, water, gas, internet, telephone, mobile bills
+4. Office Supplies — stationery, paper, printing, pens, toner, photocopying
+5. Maintenance — building repairs, AC service, plumbing, pest control, renovation
+6. IT & Technology — software, hardware, computers, cloud services, IT support
+7. Marketing — advertising, events, branding, promotions, photography
+8. Travel — hotels, flights, accommodation, airport transfers
+9. HR & Recruitment — salaries, recruitment fees, training, staff costs
+10. Legal & Professional — legal fees, accounting, consulting, government fees
+11. Other — if nothing above fits
+
+Reply with ONLY the category name exactly as written above. No explanation."""
+
+    try:
+        import boto3, json, os
+        client = boto3.Session(
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID','').strip(),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY','').strip(),
+            region_name=os.getenv('AWS_DEFAULT_REGION','eu-central-1')
+        ).client('bedrock-runtime')
+
+        response = client.invoke_model(
+            modelId='eu.anthropic.claude-sonnet-4-5-20250929-v1:0',
+            contentType='application/json',
+            accept='application/json',
+            body=json.dumps({
+                'anthropic_version': 'bedrock-2023-05-31',
+                'max_tokens': 20,
+                'messages': [{'role': 'user', 'content': prompt}]
+            })
+        )
+        result_text = json.loads(response['body'].read())['content'][0]['text'].strip()
+        # Validate it's one of our categories
+        for cat in VALID_CATEGORIES:
+            if cat.lower() in result_text.lower():
+                print(f"  [ClaudeCat] Classified as: {cat}")
+                return cat
+        print(f"  [ClaudeCat] Unexpected response: {result_text} — keeping {cur_cat}")
+        return cur_cat
+    except Exception as e:
+        print(f"  [ClaudeCat] Error: {e} — keeping {cur_cat}")
+        return cur_cat
+
+
 def get_aws_session():
     return boto3.Session(
         aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
@@ -839,42 +940,29 @@ class Handler(BaseHTTPRequestHandler):
                         submitter_email=sub_email
                     )
 
-                    # ── Category safety fix (catches LLM classification errors) ──
+                    # ── Category fix: ask Claude to classify using all invoice data ──
                     inv = result.get('invoice', {})
                     if inv:
-                        vendor_low = (inv.get('vendor_name') or '').lower()
-                        TRANSPORT_WORDS = [
-                            'petroleum','petrol','diesel','fuel','filling',
-                            'indianoil','indian oil','iocl','hpcl','bpcl',
-                            'adnoc','enoc','eppco','shell','caltex',
-                            'rajashree','sai balaji','khandelwal',
-                            'gupta service','oil co','oil corp',
-                            'service stn','service station','petrol pump',
-                            'oil company','oil corporation',
-                        ]
-                        for tw in TRANSPORT_WORDS:
-                            if tw in vendor_low:
-                                if inv.get('category') != 'Transport':
-                                    print(f"[CAT FIX] '{tw}' in vendor → Transport (was: {inv.get('category')})")
-                                    inv['category'] = 'Transport'
-                                    result['invoice'] = inv
-                                    # Update DynamoDB category
-                                    try:
-                                        from datetime import datetime
-                                        inv_id = result.get('invoice_id','')
-                                        if inv_id:
-                                            get_aws_session().resource('dynamodb')                                                .Table(os.getenv('DYNAMODB_TABLE','al-islami-petty-cash'))                                                .update_item(
-                                                    Key={'invoice_id': inv_id},
-                                                    UpdateExpression='SET category = :c, updated_at = :ts',
-                                                    ExpressionAttributeValues={
-                                                        ':c': 'Transport',
-                                                        ':ts': datetime.utcnow().isoformat()
-                                                    }
-                                                )
-                                            print(f"[CAT FIX] DynamoDB updated for {inv_id}")
-                                    except Exception as ce:
-                                        print(f"[CAT FIX] DynamoDB update error: {ce}")
-                                break
+                        detected_category = classify_category_with_claude(inv)
+                        if detected_category and detected_category != inv.get('category'):
+                            print(f"[CAT FIX] Claude reclassified → {detected_category} (was: {inv.get('category')})")
+                            inv['category'] = detected_category
+                            result['invoice'] = inv
+                            try:
+                                from datetime import datetime
+                                inv_id = result.get('invoice_id','')
+                                if inv_id:
+                                    get_aws_session().resource('dynamodb')                                        .Table(os.getenv('DYNAMODB_TABLE','al-islami-petty-cash'))                                        .update_item(
+                                            Key={'invoice_id': inv_id},
+                                            UpdateExpression='SET category = :c, updated_at = :ts',
+                                            ExpressionAttributeValues={
+                                                ':c': detected_category,
+                                                ':ts': datetime.utcnow().isoformat()
+                                            }
+                                        )
+                                    print(f"[CAT FIX] DynamoDB updated: {inv_id} → {detected_category}")
+                            except Exception as ce:
+                                print(f"[CAT FIX] DynamoDB error: {ce}")
 
                     pipeline_status[tid] = {
                         'pipeline_status': result.get('status', 'done'),
