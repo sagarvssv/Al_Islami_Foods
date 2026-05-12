@@ -1,0 +1,25 @@
+version: 1.0
+runtime: python311
+build:
+  commands:
+    build:
+      - pip install -r requirements.railway.txt
+run:
+  runtime-version: 3.11.0
+  command: python approval_server.py
+  network:
+    port: 8080
+    env: PORT
+  env:
+    - name: AWS_DEFAULT_REGION
+      value: eu-central-1
+    - name: DYNAMODB_TABLE
+      value: al-islami-petty-cash
+    - name: S3_BUCKET_NAME
+      value: al-islami-petty-cash-invoices
+    - name: SNS_TOPIC_ARN
+      value: arn:aws:sns:eu-central-1:501991669369:al-islami-petty-cash-approval
+    - name: BEDROCK_MODEL_ID
+      value: eu.anthropic.claude-sonnet-4-5-20250929-v1:0
+    - name: MAX_AMOUNT_AED
+      value: "5000"
