@@ -1061,6 +1061,10 @@ function checkPwd(){
     document.getElementById('pwd-err').style.display='none';
     document.getElementById('landing').style.display='none';
     document.getElementById('mgr-page').classList.add('active');
+    // Magic Aladdin effect
+    spawnMagicParticles();
+    const mgr=document.getElementById('mgr-page');
+    if(mgr){mgr.classList.add('magic-enter');setTimeout(()=>mgr.classList.remove('magic-enter'),1000);}
     updateBalUI();loadRecs();populateMonths();populateCatMonths();renderPendingTime();setTimeout(renderAnalytics,500);setTimeout(()=>{populateCatMonths();renderCatDashboard();},800);
   }else{
     const i=document.getElementById('pwd-input');
@@ -1704,17 +1708,7 @@ function spawnMagicParticles(){
   setTimeout(()=>{container.innerHTML=''},2200);
 }
 
-// Patch checkPwd for magic
-const _origPwd=checkPwd;
-function checkPwd(){
-  const val=document.getElementById('pwd-input').value;
-  if(val===MGR_PWD){
-    spawnMagicParticles();
-    const mgr=document.getElementById('mgr-page');
-    if(mgr){mgr.classList.add('magic-enter');setTimeout(()=>mgr.classList.remove('magic-enter'),1000);}
-  }
-  _origPwd();
-}
+
 
 // Init on load
 document.addEventListener('DOMContentLoaded', initCoinRain);
