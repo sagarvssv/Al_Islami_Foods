@@ -500,7 +500,9 @@ tr:hover td{background:#f8fff8}
 // API URL — set by deployment environment
 // App Runner: set window.API_URL before this script
 // Falls back to Railway for backward compatibility
-const API=()=>window.API_URL||'http://al-islami-alb-1975222419.eu-central-1.elb.amazonaws.com';
+// API URL: empty string on HTTPS (Amplify rewrites handle routing to ALB)
+// Direct HTTP: use ALB URL
+const API=()=>window.location.protocol==='https:'?'':'http://al-islami-alb-1975222419.eu-central-1.elb.amazonaws.com';
 const MGR_PWD='Alislami@2026';
 let allRecs=[],uFV='ALL',mFV='ALL',fileQueue=[],processing=false;
 let cash=5000; // loaded from server
