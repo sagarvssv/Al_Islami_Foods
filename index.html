@@ -502,7 +502,7 @@ tr:hover td{background:#f8fff8}
 // Falls back to Railway for backward compatibility
 // API URL: empty string on HTTPS (Amplify rewrites handle routing to ALB)
 // Direct HTTP: use ALB URL
-const API=()=>window.location.protocol==='https:'?'':'http://al-islami-alb-1975222419.eu-central-1.elb.amazonaws.com';
+const API=()=>'https://pw656hacmf.execute-api.eu-central-1.amazonaws.com';
 const MGR_PWD='Alislami@2026';
 let allRecs=[],uFV='ALL',mFV='ALL',fileQueue=[],processing=false;
 let cash=5000; // loaded from server
