@@ -918,6 +918,22 @@ tbody tr:last-child td{border-bottom:none}
 #mgr-page td{color:#e2e8f0}
 #mgr-page td .badge{filter:brightness(1.1)}
 #mgr-page tr:hover td{background:rgba(167,139,250,.08) !important}
+/* Submitted date — light purple */
+#mgr-page td[style*="color:var(--muted)"]{color:#94a3b8 !important}
+/* Rejection reason text */
+#mgr-page td span[style*="color:var(--red)"]{color:#f87171 !important}
+#mgr-page td span[style*="color:#495057"]{color:#94a3b8 !important}
+/* Action column reverse button */
+#mgr-page .btn-danger{background:linear-gradient(135deg,rgba(239,68,68,.2),rgba(239,68,68,.1));
+  color:#fca5a5;border-color:rgba(239,68,68,.3)}
+#mgr-page .btn-danger:hover{background:linear-gradient(135deg,rgba(239,68,68,.35),rgba(239,68,68,.2));
+  color:#fff;box-shadow:0 4px 12px rgba(239,68,68,.3)}
+/* Submitter email */
+#mgr-page td[style*="max-width:80px"]{color:#a5b4fc !important}
+/* Invoice number */
+#mgr-page td:nth-child(3){color:#e2e8f0}
+/* Amount */
+#mgr-page td[style*="font-weight:600"]{color:#6ee7a0}
 #mgr-page .ftab.on{
   background:linear-gradient(135deg,#7c3aed,#5b21b6);
   box-shadow:0 3px 10px rgba(124,58,237,.4);
@@ -1236,7 +1252,15 @@ function uFilter(f){uFV=f;document.querySelectorAll('#user-page .ftab').forEach(
 function mFilter(f){mFV=f;document.querySelectorAll('#mgr-page .ftab').forEach(el=>el.classList.toggle('on',el.textContent.trim()==='All'?f==='ALL':el.textContent.trim().replace(/ /g,'_').toUpperCase()===f));renderM()}
 function sBadge(r){const s=getS(r);const m={'FULLY_APPROVED':'badge bfull','AWAITING_MANAGER2':'badge bawm','REJECTED':'badge br','PENDING':'badge bp','APPROVED':'badge ba'};const l={'FULLY_APPROVED':'✅ FULLY APPROVED','AWAITING_MANAGER2':'⏳ AWAITING MGR2','REJECTED':'❌ REJECTED','PENDING':'PENDING','APPROVED':'APPROVED'};return`<span class="${m[s]||'badge bp'}">${l[s]||s}</span>`}
 function aBadge(v){if(!v||v==='—')return'<span class="badge bw">—</span>';const m={PENDING:'badge bp',WAITING:'badge bw',APPROVED:'badge bfa',REJECTED:'badge br'};return`<span class="${m[v]||'badge bw'}">${v}</span>`}
-function rCell(r){if(!r.rejection_reason)return'—';const L={duplicate:'🔁 Dup',missing_info:'📋 Missing',over_budget:'💰 Budget',not_approved:'🚫 Not Approved',wrong_category:'🏷️ Category',policy:'📜 Policy',other:'✍️ Other'};return`<span style="color:var(--red);font-weight:600">${L[r.rejection_reason]||r.rejection_reason}</span>${r.rejection_notes?'<br><span style="color:#495057;font-size:9px">'+r.rejection_notes+'</span>':''}`}
+function rCell(r){
+  if(!r.rejection_reason)return'<span style="color:rgba(255,255,255,.2)">—</span>';
+  const L={duplicate:'🔁 Dup',missing_info:'📋 Missing',over_budget:'💰 Budget',not_approved:'🚫 Not Approved',wrong_category:'🏷️ Category',policy:'📜 Policy',other:'✍️ Other'};
+  const label=L[r.rejection_reason]||r.rejection_reason;
+  const notes=r.rejection_notes?'<br><span style="color:#94a3b8;font-size:9px">'+r.rejection_notes+'</span>':'';
+  const isMgr=document.getElementById('mgr-page')?.classList.contains('active');
+  const col=isMgr?'#f87171':'var(--red)';
+  return`<span style="color:${col};font-weight:600">${label}</span>${notes}`;
+}
 function toDubai(utcStr){
   if(!utcStr) return '—';
   try{
@@ -1257,7 +1281,7 @@ function renderU(){
   document.getElementById('u-tbody').innerHTML=rows.map(r=>{
     const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
     const cr=toDubai(r.created_at);
-    return`<tr><td style="font-family:monospace;font-weight:700;color:#a78bfa;font-size:10px;letter-spacing:.5px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
+    return`<tr><td style="font-family:monospace;font-weight:700;color:#a78bfa;font-size:10px;letter-spacing:.5px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:#94a3b8;font-size:11px">${cr}</td></tr>`
   }).join('');
 }
 function renderM(){
@@ -1270,7 +1294,7 @@ function renderM(){
     const s=getS(r);
     const canRev=['FULLY_APPROVED','REJECTED','AWAITING_MANAGER2','APPROVED'].includes(s);
     const revBtn=canRev?`<button class="btn btn-danger" style="font-size:10px;padding:3px 8px" onclick="reverseInvoice('${r.invoice_id}','${s}')">↩ Reverse</button>`:'—';
-    return`<tr><td style="font-family:monospace;font-weight:700;color:#6ee7a0;font-size:10px;letter-spacing:.5px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:#e2e8f0">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
+    return`<tr><td style="font-family:monospace;font-weight:700;color:#6ee7a0;font-size:10px;letter-spacing:.5px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:#e2e8f0">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:#94a3b8;font-size:11px">${cr}</td><td>${revBtn}</td></tr>`
   }).join('');
 }
 // Approximate exchange rates to AED (updated periodically)
