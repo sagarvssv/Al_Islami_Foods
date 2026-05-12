@@ -90,7 +90,12 @@ def invoke_agentcore_runtime(bucket: str, key: str,
     Invoke AgentCore runtime instance with the invoice pipeline.
     Falls back to direct pipeline if runtime errors.
     """
-    runtime_client = get_session().client('bedrock-agentcore')
+    try:
+        runtime_client = get_session().client('bedrock-agentcore')
+    except Exception as e:
+        print(f"  [AgentCore] bedrock-agentcore not available in this boto3 version: {e}")
+        print(f"  [AgentCore] Falling back to direct pipeline...")
+        raise Exception(f"bedrock-agentcore unavailable: {e}")
     runtime_arn    = os.getenv('AGENTCORE_RUNTIME_ARN')
     runtime_id     = os.getenv('AGENTCORE_RUNTIME_ID')
 
