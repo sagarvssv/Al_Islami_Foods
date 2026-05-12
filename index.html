@@ -662,7 +662,7 @@ tbody tr:last-child td{border-bottom:none}
            style="width:180px;margin-bottom:10px;filter:drop-shadow(0 6px 32px rgba(167,139,250,.5)) drop-shadow(0 0 60px rgba(34,211,238,.3)) brightness(1.1)">
     </div>
     <div class="land-tagline">Al Islami — Food is a Blessing</div>
-    <div class="land-sub">Petty Cash Management</div>
+    <div class="land-sub">Petty Cash Management · Powered by AWS Bedrock AI</div>
     <div class="land-divider"></div>
 
 
@@ -915,6 +915,9 @@ tbody tr:last-child td{border-bottom:none}
 #mgr-page table th{
   background:linear-gradient(135deg,#2d1b69,#1e1a50);
 }
+#mgr-page td{color:#e2e8f0}
+#mgr-page td .badge{filter:brightness(1.1)}
+#mgr-page tr:hover td{background:rgba(167,139,250,.08) !important}
 #mgr-page .ftab.on{
   background:linear-gradient(135deg,#7c3aed,#5b21b6);
   box-shadow:0 3px 10px rgba(124,58,237,.4);
@@ -1254,7 +1257,7 @@ function renderU(){
   document.getElementById('u-tbody').innerHTML=rows.map(r=>{
     const amt=r.total_amount?r.total_amount+' '+(r.currency||'AED'):'—';
     const cr=toDubai(r.created_at);
-    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
+    return`<tr><td style="font-family:monospace;font-weight:700;color:#a78bfa;font-size:10px;letter-spacing:.5px">${r.invoice_id||'—'}</td><td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td></tr>`
   }).join('');
 }
 function renderM(){
@@ -1267,7 +1270,7 @@ function renderM(){
     const s=getS(r);
     const canRev=['FULLY_APPROVED','REJECTED','AWAITING_MANAGER2','APPROVED'].includes(s);
     const revBtn=canRev?`<button class="btn btn-danger" style="font-size:10px;padding:3px 8px" onclick="reverseInvoice('${r.invoice_id}','${s}')">↩ Reverse</button>`:'—';
-    return`<tr><td style="font-family:monospace;font-weight:700;color:var(--g1);font-size:10px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
+    return`<tr><td style="font-family:monospace;font-weight:700;color:#6ee7a0;font-size:10px;letter-spacing:.5px">${r.invoice_id||'—'}</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:#e2e8f0">${r.vendor_name||'—'}</td><td>${r.invoice_number||'—'}</td><td style="font-weight:600">${amt}</td><td><span style="background:#e9ecef;color:#495057;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap">${r.category||'Other'}</span></td><td style="color:var(--muted);font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.submitter_email||'—'}</td><td>${sBadge(r)}</td><td>${aBadge(r.approval_1_status||'PENDING')}</td><td>${aBadge(r.approval_2_status||'WAITING')}</td><td>${rCell(r)}</td><td style="color:var(--muted)">${cr}</td><td>${revBtn}</td></tr>`
   }).join('');
 }
 // Approximate exchange rates to AED (updated periodically)
