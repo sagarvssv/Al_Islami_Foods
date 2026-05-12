@@ -1090,7 +1090,7 @@ function renderQueue(){
   const btn=document.getElementById('process-btn');btn.disabled=processing||waiting===0;btn.textContent=processing?'⏳ Processing...':'▶ Process All';
   document.getElementById('file-list').innerHTML=fileQueue.map(item=>{
     const sz=(item.file.size/1024).toFixed(0)+' KB';
-    const sH={waiting:'<span class="status-wait">⏳ Waiting</span>',uploading:'<span class="status-proc">⬆ Uploading...</span>',processing:'<span class="status-proc">⚙ Processing...</span>',ok:'<span class="status-ok">✅ Sent</span>',duplicate:'<span class="status-dup">⚠️ Duplicate</span>',error:'<span class="status-err">❌ Error</span>',rejected:'<span class="status-err">❌ Rejected</span>'}[item.status]||'';
+    const sH={waiting:'<span class="status-wait">⏳ Waiting</span>',uploading:'<span class="status-proc">⬆ Uploading...</span>',processing:'<span class="status-proc">⚙ AI Processing... (may take 60s)</span>',ok:'<span class="status-ok">✅ Sent</span>',duplicate:'<span class="status-dup">⚠️ Duplicate</span>',error:'<span class="status-err">❌ Error</span>',rejected:'<span class="status-err">❌ Rejected</span>'}[item.status]||'';
     const canRm=!['uploading','processing'].includes(item.status);
     return`<div class="file-item"><div style="font-size:18px">📄</div><div class="file-info"><div class="file-name">${item.file.name}</div><div class="file-size">${sz}</div></div><div class="file-status">${sH}</div>${canRm?`<button class="btn-sm" style="color:var(--red)" onclick="rmFile('${item.id}')">✕</button>`:''}</div>`
   }).join('')
@@ -1111,14 +1111,22 @@ async function processAll(){
       if(!res.ok)throw new Error(await res.text());
       const data=await res.json();item.trackId=data.tracking_id||data.invoice_id;
       item.status='processing';renderQueue();
-      for(let i=0;i<90;i++){
-        await new Promise(r=>setTimeout(r,2000));
-        try{const sr=await fetch(API()+'/status/'+item.trackId);const sd=await sr.json();const ps=sd.pipeline_status;
+      // ECS processing takes longer — poll for up to 5 minutes
+      for(let i=0;i<150;i++){
+        await new Promise(r=>setTimeout(r,3000));
+        try{
+          const sr=await fetch(API()+'/status/'+item.trackId,{signal:AbortSignal.timeout(8000)});
+          const sd=await sr.json();
+          const ps=sd.pipeline_status;
           if(ps==='pending_approval'){item.status='ok';break}
           if(ps==='duplicate_pending_approval'){item.status='duplicate';break}
           if(ps==='rejected'){item.status='rejected';break}
           if(ps==='error'){item.status='error';break}
-        }catch{}
+          // Show progress
+          if(sd.current_step) item.step=sd.current_step;
+        }catch(e){
+          console.warn('Poll attempt',i,'failed:',e.message);
+        }
       }
       if(['uploading','processing'].includes(item.status))item.status='error';
     }catch(e){item.status='error'}
