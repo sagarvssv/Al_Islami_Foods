@@ -1181,7 +1181,7 @@ h2{{color:#212529;margin:8px 0;font-size:20px}}
 
 
 if __name__ == '__main__':
-    port   = int(os.getenv('PORT', 8000))
+    port   = int(os.getenv('PORT', 8080))
     server = HTTPServer(('0.0.0.0', port), Handler)
     print(f"\nAl Islami Foods — Approval Server v2.0")
     print(f"{'='*48}")
